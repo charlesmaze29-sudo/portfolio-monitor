@@ -208,14 +208,24 @@ def compute_monthly_perf(prices: dict, baseline: dict) -> dict:
 
 # ── Appels Claude ────────────────────────────────────────────────────────────
 
-def call_claude(prompt: str, model: str) -> str:
+def call_claude(prompt: str, model: str, use_web_search: bool = False) -> str:
+    """
+    Appel Claude avec web search optionnel.
+    Web search actif pour daily/monthly (Sonnet) — acces aux news du jour.
+    Desactive pour alertes Haiku (cout + vitesse).
+    """
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    msg = client.messages.create(
-        model=model,
-        max_tokens=MAX_TOKENS,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return msg.content[0].text
+    kwargs = {
+        "model":      model,
+        "max_tokens": MAX_TOKENS,
+        "messages":   [{"role": "user", "content": prompt}],
+    }
+    if use_web_search:
+        kwargs["tools"] = [{"type": "web_search_20250305", "name": "web_search"}]
+
+    msg = client.messages.create(**kwargs)
+    text_parts = [block.text for block in msg.content if hasattr(block, "text")]
+    return "\n".join(text_parts)
 
 
 def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -> str:
@@ -223,77 +233,87 @@ def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -
     patrimoine = portfolio["config"]["patrimoine_total_eur"]
     total_chg  = agg["total_change_eur"]
     total_val  = agg["total_valeur_eur"]
-    sign_total = "▲" if total_chg >= 0 else "▼"
+    sign_total = "+" if total_chg >= 0 else ""
+    chg_pct    = total_chg / total_val * 100 if total_val else 0.0
 
-    # Bloc variation totale
-    variation_bloc = f"""VARIATION TOTALE PORTEFEUILLE (titres suivis):
-{sign_total} {total_chg:+,.0f} € sur la journée ({total_chg/total_val*100:+.2f}% de la valeur suivie)
-
-Par enveloppe:
-"""
+    variation_bloc = f"VARIATION TOTALE: {sign_total}{total_chg:,.0f} EUR ({sign_total}{chg_pct:.2f}%)\n\n"
+    variation_bloc += "Par enveloppe:\n"
     for env, chg in agg["by_envelope"].items():
-        s = "▲" if chg >= 0 else "▼"
-        variation_bloc += f"  {s} {env}: {chg:+,.0f} €\n"
-
-    variation_bloc += "\nPar sleeve AI:\n"
+        s = "+" if chg >= 0 else ""
+        variation_bloc += f"  {env}: {s}{chg:,.0f} EUR\n"
+    variation_bloc += "\nPar sleeve:\n"
     for slv, chg in agg["by_sleeve"].items():
-        s = "▲" if chg >= 0 else "▼"
-        variation_bloc += f"  {s} {slv}: {chg:+,.0f} €\n"
+        s = "+" if chg >= 0 else ""
+        variation_bloc += f"  {slv}: {s}{chg:,.0f} EUR\n"
 
-    # Positions détaillées
     positions_lines = []
-    for t, d in sorted(prices.items(), key=lambda x: x[1]["change_pct"]):
-        sign = "▲" if d["change_pct"] > 0 else "▼" if d["change_pct"] < 0 else "—"
+    for t, d in sorted(prices.items(), key=lambda x: x[1]["change_pct"], reverse=True):
+        sign = "+" if d["change_pct"] > 0 else ""
         positions_lines.append(
-            f"- {d['name']} ({t}): {sign}{abs(d['change_pct']):.1f}% | "
-            f"{d['change_eur']:+,.0f}€ | cours {d['price']:.2f} {d['currency']} | {d['sleeve']}"
+            f"- {d['name']} ({t}): {sign}{d['change_pct']:.1f}% | "
+            f"{sign}{d['change_eur']:,.0f} EUR | cours {d['price']:.2f} {d['currency']} | {d['sleeve']}"
         )
 
     movers_bloc = ""
     if movers:
-        movers_bloc = "\nMOUVEMENTS FORTS (> seuil d'alerte):\n"
+        movers_bloc = "\nMOUVEMENTS > SEUIL D'ALERTE:\n"
         for m in movers:
-            movers_bloc += f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% ⚠️"
-            if m["notes"]:
-                movers_bloc += f" — {m['notes']}"
+            movers_bloc += f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% ALERTE"
+            if m.get("notes"):
+                movers_bloc += f" -- {m['notes']}"
             movers_bloc += "\n"
 
-    # Catalyseurs proches
     upcoming = []
     today_dt = date.today()
     for cat in portfolio.get("catalysts", []):
         try:
-            cat_dt     = date.fromisoformat(cat["date"])
-            days_ahead = (cat_dt - today_dt).days
+            days_ahead = (date.fromisoformat(cat["date"]) - today_dt).days
             if 0 <= days_ahead <= 7:
-                upcoming.append(f"- J+{days_ahead}: {cat['ticker']} — {cat['event']}")
+                upcoming.append(f"- J+{days_ahead}: {cat['ticker']} -- {cat['event']}")
         except Exception:
             pass
     catalysts_bloc = ("\nCATALYSEURS DANS LES 7 JOURS:\n" + "\n".join(upcoming)) if upcoming else ""
 
-    return f"""Tu es l'analyste financier personnel de Charles, investisseur actif avec un patrimoine ~{patrimoine:,}€, horizon 5+ ans, fortement exposé à la chaîne de valeur IA.
+    big_movers = [
+        f"{d['name']} ({t}, {d['change_pct']:+.1f}%)"
+        for t, d in prices.items()
+        if abs(d["change_pct"]) >= 3.0
+    ]
+    big_movers_str = ", ".join(big_movers) if big_movers else "aucune variation > 3%"
+
+    return f"""Tu es l'analyste financier personnel de Charles. Patrimoine ~{patrimoine:,} EUR, horizon 5+ ans, fortement expose chaine de valeur IA.
 Date: {today}
 
 {variation_bloc}
-DÉTAIL POSITIONS (trié par variation):
+POSITIONS DU JOUR (tri decroissant par variation):
 {chr(10).join(positions_lines)}
 {movers_bloc}{catalysts_bloc}
 
-Produis le récap de soirée en français, structuré en 4 blocs:
+VARIATIONS > 3% A INVESTIGUER: {big_movers_str}
 
-**📊 BILAN DU JOUR**
-Variation totale en € et %, commentaire en 2 phrases sur ce qui a dominé (macro, secteur, catalyseur spécifique).
+INSTRUCTIONS — utilise le web search pour:
+1. Identifier la cause precise de chaque mouvement > 3% (news du jour, annonces, macro)
+2. Pour chaque grosse variation: contexte des 3-5 derniers jours (continuation? retournement? gap?)
+3. Contexte macro du jour pertinent pour ce portefeuille
 
-**🔍 POINTS D'ATTENTION**
-Max 5 bullets. Uniquement les lignes avec variation notable, catalyseur proche, ou signal à surveiller. Pour chaque point: cause probable du mouvement + implication concrète pour le portefeuille.
+Produis le recap en francais, 4 blocs:
 
-**🌍 CONTEXTE DE MARCHÉ**
-2-3 phrases sur le contexte macro/sectoriel du jour qui explique les mouvements (Fed, AI capex, résultats, géopolitique...). Relie au portefeuille de Charles.
+**BILAN DU JOUR**
+Variation totale en EUR et %, 2 phrases sur ce qui a domine avec les vrais chiffres.
 
-**⚡ ACTION REQUISE ?**
-Une seule ligne tranchée: OUI ou NON, et pourquoi. Si oui: quelle action précise sur quelle ligne.
+**POINTS D'ATTENTION**
+Max 6 bullets. Pour chaque ligne notable:
+- Variation du jour + cause precise (via web search)
+- Contexte des derniers jours
+- Implication concrete pour le portefeuille (stops, sizing, these)
 
-Ton: analyste senior s'adressant à un pair. Direct, chiffré, sans rembourrage ni disclaimer."""
+**CONTEXTE DE MARCHE**
+2-3 phrases sur le macro/sectoriel du jour. Lien direct avec les expositions de Charles.
+
+**ACTION REQUISE ?**
+OUI ou NON, une ligne tranchee. Si OUI: action precise sur quelle ligne et pourquoi maintenant.
+
+Ton: analyste senior. Direct, chiffre, source. Zero rembourrage."""
 
 
 def build_alert_prompt(movers: list) -> str:
@@ -301,83 +321,22 @@ def build_alert_prompt(movers: list) -> str:
     for m in movers:
         lines.append(
             f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% "
-            f"(seuil: {m['threshold']}%) | {m['change_eur']:+,.0f}€ | sleeve: {m['sleeve']}"
+            f"(seuil: {m['threshold']}%) | {m['change_eur']:+,.0f} EUR | {m['sleeve']}"
         )
-        if m["notes"]:
-            lines.append(f"  Contexte: {m['notes']}")
+        if m.get("notes"):
+            lines.append(f"  Note: {m['notes']}")
 
-    return f"""Alerte portefeuille Charles — {datetime.now(PARIS_TZ).strftime('%d/%m/%Y %H:%M')}
+    return f"""Alerte portefeuille Charles -- {datetime.now(PARIS_TZ).strftime('%d/%m/%Y %H:%M')}
 
-Variations dépassant les seuils:
+Variations depassant les seuils:
 {chr(10).join(lines)}
 
-En 3-4 phrases:
-1. Cause probable du mouvement
-2. Action concrète déclenchée ? (stop, trim, renforcement, ou rien)
+3-4 phrases:
+1. Cause probable (news, macro, technique)
+2. Action concrete declenchee ? (stop, trim, renforcement, rien)
 3. Urgence: URGENT / SURVEILLER / INFO
 
-Direct, pas de disclaimer."""
-
-
-def build_monthly_prompt(prices: dict, perf: dict, agg: dict,
-                         portfolio: dict, month_label: str) -> str:
-    patrimoine = portfolio["config"]["patrimoine_total_eur"]
-    total_gain = perf["total_gain"]
-    total_pct  = perf["total_pct"]
-
-    # Top performers
-    sorted_pos = sorted(perf["positions"].items(), key=lambda x: x[1]["pct"], reverse=True)
-    top5    = sorted_pos[:5]
-    bottom5 = sorted_pos[-5:]
-
-    top_lines = "\n".join(
-        f"  ▲ {v['name']} ({t}): {v['pct']:+.1f}% ({v['gain_eur']:+,.0f}€)"
-        for t, v in top5
-    )
-    bottom_lines = "\n".join(
-        f"  ▼ {v['name']} ({t}): {v['pct']:+.1f}% ({v['gain_eur']:+,.0f}€)"
-        for t, v in bottom5
-    )
-
-    # Par sleeve
-    sleeve_perf = {}
-    for t, v in perf["positions"].items():
-        slv = v["sleeve"]
-        sleeve_perf[slv] = sleeve_perf.get(slv, 0.0) + v["gain_eur"]
-    sleeve_lines = "\n".join(
-        f"  {'▲' if g >= 0 else '▼'} {s}: {g:+,.0f}€"
-        for s, g in sorted(sleeve_perf.items(), key=lambda x: x[1], reverse=True)
-    )
-
-    return f"""Tu es l'analyste financier personnel de Charles. Patrimoine ~{patrimoine:,}€, fortement exposé IA, horizon 5+ ans.
-
-BILAN MENSUEL — {month_label}
-Performance totale (positions suivies): {total_gain:+,.0f}€ ({total_pct:+.2f}%)
-
-TOP 5 PERFORMERS DU MOIS:
-{top_lines}
-
-BOTTOM 5 DU MOIS:
-{bottom_lines}
-
-PAR SLEEVE:
-{sleeve_lines}
-
-Produis le bilan mensuel en français, structuré en 4 blocs:
-
-**📅 BILAN {month_label.upper()}**
-Performance chiffrée, 2 phrases sur ce qui a dominé ce mois.
-
-**🏆 CE QUI A FONCTIONNÉ / CE QUI N'A PAS FONCTIONNÉ**
-3 points positifs + 3 points négatifs, avec explication brève de chaque.
-
-**🔄 ÉVOLUTION DE LA THÈSE**
-La thèse AI value chain est-elle validée, challengée, ou en mutation ? Quels signaux du mois le confirment ou l'infirment ?
-
-**📋 AJUSTEMENTS RECOMMANDÉS POUR LE MOIS PROCHAIN**
-Max 3 actions concrètes: renforcement, allègement, repositionnement. Justification en une ligne chacune.
-
-Ton: analyste senior, direct, chiffré. Pas de disclaimer."""
+Direct."""
 
 
 # ── Construction emails HTML ─────────────────────────────────────────────────
@@ -581,7 +540,7 @@ def run_daily():
         print("[daily] Baseline mensuelle mise à jour")
 
     prompt    = build_daily_prompt(prices, movers, agg, portfolio)
-    narrative = call_claude(prompt, MODEL_SONNET)
+    narrative = call_claude(prompt, MODEL_SONNET, use_web_search=True)
     subject, html = build_email_html("daily", narrative, prices, movers, portfolio, agg=agg)
     send_email(subject, html)
     print("[daily] Terminé.")
@@ -632,7 +591,7 @@ def run_monthly():
     month_label = now.strftime("%B %Y")
 
     prompt    = build_monthly_prompt(prices, perf, agg, portfolio, month_label)
-    narrative = call_claude(prompt, MODEL_SONNET)
+    narrative = call_claude(prompt, MODEL_SONNET, use_web_search=True)
     subject, html = build_email_html("monthly", narrative, prices, [], portfolio,
                                      agg=agg, perf=perf, month_label=month_label)
     send_email(subject, html)

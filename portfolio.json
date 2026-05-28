@@ -7,7 +7,6 @@
     "currency_display": "EUR",
     "patrimoine_total_eur": 470000
   },
-
   "positions": [
     {
       "ticker": "MU",
@@ -21,9 +20,9 @@
       "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
     },
     {
-      "ticker": "000660.KS",
+      "ticker": "HXSCL",
       "name": "SK Hynix",
-      "exchange": "KRX",
+      "exchange": "OTC",
       "qty": 10,
       "pru_eur": 824.0,
       "envelope": "Trade Republic",
@@ -217,7 +216,7 @@
       "name": "Alstom",
       "exchange": "EPA",
       "qty": 150,
-      "pru_eur": 16.70,
+      "pru_eur": 16.7,
       "envelope": "CTO BoursoBank",
       "sleeve": "Other"
     },
@@ -226,7 +225,7 @@
       "name": "MP Materials",
       "exchange": "NYSE",
       "qty": 30,
-      "pru_eur": 59.40,
+      "pru_eur": 59.4,
       "envelope": "CTO BoursoBank",
       "sleeve": "Other"
     },
@@ -298,7 +297,7 @@
       "name": "Société Générale",
       "exchange": "EPA",
       "qty": 35,
-      "pru_eur": 65.30,
+      "pru_eur": 65.3,
       "envelope": "PEA BoursoBank",
       "sleeve": "Other"
     },
@@ -334,7 +333,7 @@
       "name": "Banco Santander",
       "exchange": "EPA",
       "qty": 250,
-      "pru_eur": 10.70,
+      "pru_eur": 10.7,
       "envelope": "PEA BoursoBank",
       "sleeve": "Other"
     },
@@ -352,7 +351,7 @@
       "name": "Lumibird",
       "exchange": "EPA",
       "qty": 175,
-      "pru_eur": 25.10,
+      "pru_eur": 25.1,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic",
       "notes": "Photonique laser — surveiller volume"
@@ -381,7 +380,7 @@
       "name": "Semco Technologies",
       "exchange": "EPA",
       "qty": 30,
-      "pru_eur": 45.20,
+      "pru_eur": 45.2,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic"
     },
@@ -422,15 +421,33 @@
       "sleeve": "Other"
     }
   ],
-
   "watchlist": [
-    {"ticker": "PANW", "name": "Palo Alto Networks", "reason": "Cyber — séquencé après AI"},
-    {"ticker": "LUMN", "name": "Lumentum", "reason": "Photonique — 1-2% max"},
-    {"ticker": "COHR", "name": "Coherent", "reason": "Photonique direct play"}
+    {
+      "ticker": "PANW",
+      "name": "Palo Alto Networks",
+      "reason": "Cyber — séquencé après AI"
+    },
+    {
+      "ticker": "LUMN",
+      "name": "Lumentum",
+      "reason": "Photonique — 1-2% max"
+    },
+    {
+      "ticker": "COHR",
+      "name": "Coherent",
+      "reason": "Photonique direct play"
+    }
   ],
-
   "catalysts": [
-    {"date": "2026-06-03", "ticker": "CRDO", "event": "Earnings Credo Technology — confirmation thèse optique"},
-    {"date": "2026-08-01", "ticker": "ALL_HYPERSCALERS", "event": "Earnings hyperscalers été — suivi guidance AI capex"}
+    {
+      "date": "2026-06-03",
+      "ticker": "CRDO",
+      "event": "Earnings Credo Technology — confirmation thèse optique"
+    },
+    {
+      "date": "2026-08-01",
+      "ticker": "ALL_HYPERSCALERS",
+      "event": "Earnings hyperscalers été — suivi guidance AI capex"
+    }
   ]
 }
