@@ -20,9 +20,9 @@
       "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
     },
     {
-      "ticker": "HXSCL",
+      "ticker": "HY9H.F",
       "name": "SK Hynix",
-      "exchange": "OTC",
+      "exchange": "FRA",
       "qty": 10,
       "pru_eur": 824.0,
       "envelope": "Trade Republic",
