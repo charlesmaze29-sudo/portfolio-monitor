@@ -233,10 +233,10 @@ def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -
     patrimoine = portfolio["config"]["patrimoine_total_eur"]
     total_chg  = agg["total_change_eur"]
     total_val  = agg["total_valeur_eur"]
-    sign_total = "+" if total_chg >= 0 else ""
     chg_pct    = total_chg / total_val * 100 if total_val else 0.0
+    sign       = "+" if total_chg >= 0 else ""
 
-    variation_bloc = f"VARIATION TOTALE: {sign_total}{total_chg:,.0f} EUR ({sign_total}{chg_pct:.2f}%)\n\n"
+    variation_bloc = f"VARIATION TOTALE: {sign}{total_chg:,.0f} EUR ({sign}{chg_pct:.2f}%)\n\n"
     variation_bloc += "Par enveloppe:\n"
     for env, chg in agg["by_envelope"].items():
         s = "+" if chg >= 0 else ""
@@ -246,22 +246,15 @@ def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -
         s = "+" if chg >= 0 else ""
         variation_bloc += f"  {slv}: {s}{chg:,.0f} EUR\n"
 
+    # Positions — toutes listées, marquées si > 5%
     positions_lines = []
     for t, d in sorted(prices.items(), key=lambda x: x[1]["change_pct"], reverse=True):
-        sign = "+" if d["change_pct"] > 0 else ""
+        s = "+" if d["change_pct"] > 0 else ""
+        flag = " [COMMENTER]" if abs(d["change_pct"]) >= 5.0 else ""
         positions_lines.append(
-            f"- {d['name']} ({t}): {sign}{d['change_pct']:.1f}% | "
-            f"{sign}{d['change_eur']:,.0f} EUR | cours {d['price']:.2f} {d['currency']} | {d['sleeve']}"
+            f"- {d['name']} ({t}): {s}{d['change_pct']:.1f}%{flag} | "
+            f"{s}{d['change_eur']:,.0f} EUR | {d['price']:.2f} {d['currency']} | {d['sleeve']}"
         )
-
-    movers_bloc = ""
-    if movers:
-        movers_bloc = "\nMOUVEMENTS > SEUIL D'ALERTE:\n"
-        for m in movers:
-            movers_bloc += f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% ALERTE"
-            if m.get("notes"):
-                movers_bloc += f" -- {m['notes']}"
-            movers_bloc += "\n"
 
     upcoming = []
     today_dt = date.today()
@@ -274,44 +267,44 @@ def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -
             pass
     catalysts_bloc = ("\nCATALYSEURS DANS LES 7 JOURS:\n" + "\n".join(upcoming)) if upcoming else ""
 
+    # Movers > 5% pour le web search ciblé
     big_movers = [
         f"{d['name']} ({t}, {d['change_pct']:+.1f}%)"
         for t, d in prices.items()
-        if abs(d["change_pct"]) >= 3.0
+        if abs(d["change_pct"]) >= 5.0
     ]
-    big_movers_str = ", ".join(big_movers) if big_movers else "aucune variation > 3%"
+    big_movers_str = ", ".join(big_movers) if big_movers else "aucune"
 
     return f"""Tu es l'analyste financier personnel de Charles. Patrimoine ~{patrimoine:,} EUR, horizon 5+ ans, fortement expose chaine de valeur IA.
 Date: {today}
 
 {variation_bloc}
-POSITIONS DU JOUR (tri decroissant par variation):
+TOUTES LES POSITIONS DU JOUR (decroissant par variation — marquees [COMMENTER] si > +/-5%):
 {chr(10).join(positions_lines)}
-{movers_bloc}{catalysts_bloc}
+{catalysts_bloc}
 
-VARIATIONS > 3% A INVESTIGUER: {big_movers_str}
+VALEURS > 5% A INVESTIGUER VIA WEB SEARCH: {big_movers_str}
 
-INSTRUCTIONS — utilise le web search pour:
-1. Identifier la cause precise de chaque mouvement > 3% (news du jour, annonces, macro)
-2. Pour chaque grosse variation: contexte des 3-5 derniers jours (continuation? retournement? gap?)
-3. Contexte macro du jour pertinent pour ce portefeuille
+INSTRUCTIONS:
+1. Commence par 2 recherches web: (a) "market sentiment {today}" ou equivalent pour le sentiment global du jour, (b) une recherche par valeur marquee [COMMENTER] pour identifier la cause precise du mouvement et le contexte des 3-5 derniers jours.
+2. Limite-toi a MAX 3 recherches web au total pour controler le cout.
 
-Produis le recap en francais, 4 blocs:
+Produis le recap en francais, 5 blocs:
+
+**SENTIMENT DU JOUR**
+1 phrase sur le sentiment global des marches (risk-on/risk-off, VIX, tendance indices). 1 phrase sur le sentiment specifique du portefeuille de Charles (AI sleeve, memoire, Europe...).
 
 **BILAN DU JOUR**
-Variation totale en EUR et %, 2 phrases sur ce qui a domine avec les vrais chiffres.
+Variation totale {sign}{total_chg:,.0f} EUR ({sign}{chg_pct:.2f}%). 2 phrases sur ce qui a domine.
 
-**POINTS D'ATTENTION**
-Max 6 bullets. Pour chaque ligne notable:
-- Variation du jour + cause precise (via web search)
-- Contexte des derniers jours
-- Implication concrete pour le portefeuille (stops, sizing, these)
+**COMMENTAIRE VALEURS > 5%**
+Pour CHAQUE valeur marquee [COMMENTER]: cause precise du mouvement (news, macro, catalyseur), contexte des derniers jours, et implication concrete pour le portefeuille. Si aucune valeur > 5%: ecrire "Aucune variation significative aujourd'hui."
 
 **CONTEXTE DE MARCHE**
-2-3 phrases sur le macro/sectoriel du jour. Lien direct avec les expositions de Charles.
+2 phrases sur le macro/sectoriel du jour. Lien direct avec les expositions de Charles.
 
 **ACTION REQUISE ?**
-OUI ou NON, une ligne tranchee. Si OUI: action precise sur quelle ligne et pourquoi maintenant.
+OUI ou NON, une ligne. Si OUI: action precise, quelle ligne, pourquoi maintenant.
 
 Ton: analyste senior. Direct, chiffre, source. Zero rembourrage."""
 
@@ -516,7 +509,15 @@ def send_email(subject: str, html: str):
 
 # ── Modes principaux ─────────────────────────────────────────────────────────
 
+def is_weekend() -> bool:
+    """Retourne True si aujourd'hui est samedi ou dimanche."""
+    return datetime.now(PARIS_TZ).weekday() >= 5
+
+
 def run_daily():
+    if is_weekend():
+        print("[daily] Weekend — pas d'email.")
+        return
     print("[daily] Démarrage...")
     portfolio = load_portfolio()
     eurusd    = fetch_eurusd()
@@ -547,6 +548,9 @@ def run_daily():
 
 
 def run_alert():
+    if is_weekend():
+        print("[alert] Weekend — pas d'email.")
+        return
     print("[alert] Vérification intraday...")
     portfolio = load_portfolio()
     eurusd    = fetch_eurusd()
