@@ -1,0 +1,294 @@
+{
+  "config": {
+    "alert_threshold_pct": 5.0,
+    "email_recipient": "VOTRE_EMAIL@gmail.com",
+    "email_sender": "VOTRE_EMAIL@gmail.com",
+    "daily_summary_hour_utc": 16,
+    "currency_display": "EUR",
+    "patrimoine_total_eur": 470000
+  },
+
+  "positions": [
+    {
+      "ticker": "MU",
+      "name": "Micron Technology",
+      "exchange": "NASDAQ",
+      "qty": 55,
+      "pru_eur": 115.96,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Memory",
+      "alert_threshold_override": 4.0,
+      "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK Hynix",
+      "exchange": "KRX",
+      "qty": 10,
+      "pru_eur": 824.0,
+      "envelope": "Trade Republic",
+      "sleeve": "Memory",
+      "alert_threshold_override": 4.0,
+      "notes": "Stops manuels: alerte 1010€ / trailing 970€ / hard 915€"
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft",
+      "exchange": "NASDAQ",
+      "qty": 30,
+      "pru_eur": 358.37,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Hyperscalers"
+    },
+    {
+      "ticker": "TSM",
+      "name": "TSMC ADR",
+      "exchange": "NYSE",
+      "qty": 17,
+      "pru_eur": 334.64,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon",
+      "exchange": "NASDAQ",
+      "qty": 25,
+      "pru_eur": 199.31,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Hyperscalers"
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet A",
+      "exchange": "NASDAQ",
+      "qty": 12,
+      "pru_eur": 161.53,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Hyperscalers"
+    },
+    {
+      "ticker": "RGTI",
+      "name": "Rigetti Computing",
+      "exchange": "NASDAQ",
+      "qty": 250,
+      "pru_eur": 19.29,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "IREN",
+      "name": "IREN Ltd",
+      "exchange": "NASDAQ",
+      "qty": 80,
+      "pru_eur": 39.71,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Neocloud"
+    },
+    {
+      "ticker": "CEG",
+      "name": "Constellation Energy",
+      "exchange": "NASDAQ",
+      "qty": 16,
+      "pru_eur": 244.96,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "CRDO",
+      "name": "Credo Technology",
+      "exchange": "NASDAQ",
+      "qty": 22,
+      "pru_eur": 160.68,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Semi infra/logic",
+      "notes": "Earnings 3 juin 2026 — catalyseur optique/connectivity"
+    },
+    {
+      "ticker": "NOW",
+      "name": "ServiceNow",
+      "exchange": "NYSE",
+      "qty": 40,
+      "pru_eur": 78.44,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "App/SaaS"
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms",
+      "exchange": "NASDAQ",
+      "qty": 6,
+      "pru_eur": 522.29,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Hyperscalers"
+    },
+    {
+      "ticker": "IONQ",
+      "name": "IonQ",
+      "exchange": "NYSE",
+      "qty": 60,
+      "pru_eur": 49.02,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "exchange": "NASDAQ",
+      "qty": 10,
+      "pru_eur": 184.11,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "NBIS",
+      "name": "Nebius Group",
+      "exchange": "NASDAQ",
+      "qty": 10,
+      "pru_eur": 195.09,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Neocloud"
+    },
+    {
+      "ticker": "AAPL",
+      "name": "Apple",
+      "exchange": "NASDAQ",
+      "qty": 7,
+      "pru_eur": 229.55,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "ADBE",
+      "name": "Adobe",
+      "exchange": "NASDAQ",
+      "qty": 8,
+      "pru_eur": 264.03,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "App/SaaS"
+    },
+    {
+      "ticker": "CRM",
+      "name": "Salesforce",
+      "exchange": "NYSE",
+      "qty": 12,
+      "pru_eur": 152.0,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "App/SaaS",
+      "notes": "Entrée récente — earnings 27 mai catalyseur"
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML Holding",
+      "exchange": "NASDAQ",
+      "qty": 5,
+      "pru_eur": 1208.89,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "AIR.PA",
+      "name": "Air Liquide",
+      "exchange": "EPA",
+      "qty": 55,
+      "pru_eur": 163.82,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "MC.PA",
+      "name": "LVMH",
+      "exchange": "EPA",
+      "qty": 16,
+      "pru_eur": 585.46,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "SU.PA",
+      "name": "Schneider Electric",
+      "exchange": "EPA",
+      "qty": 10,
+      "pru_eur": 271.72,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "RHM.DE",
+      "name": "Rheinmetall",
+      "exchange": "XETRA",
+      "qty": 2,
+      "pru_eur": 1527.98,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "BAN.PA",
+      "name": "BNP Paribas",
+      "exchange": "EPA",
+      "qty": 30,
+      "pru_eur": 70.01,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "EN.PA",
+      "name": "Engie",
+      "exchange": "EPA",
+      "qty": 120,
+      "pru_eur": 18.04,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "GLE.PA",
+      "name": "Société Générale",
+      "exchange": "EPA",
+      "qty": 35,
+      "pru_eur": 65.30,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "LBIRD.PA",
+      "name": "Lumibird",
+      "exchange": "EPA",
+      "qty": 175,
+      "pru_eur": 25.10,
+      "envelope": "PEA-PME",
+      "sleeve": "Semi infra/logic",
+      "notes": "Photonique laser — surveiller volume"
+    },
+    {
+      "ticker": "MEMS.PA",
+      "name": "Memscap",
+      "exchange": "EPA",
+      "qty": 400,
+      "pru_eur": 6.28,
+      "envelope": "PEA-PME",
+      "sleeve": "Semi infra/logic",
+      "notes": "Pivot VOA/photonique — thèse en cours"
+    },
+    {
+      "ticker": "KALRAY.PA",
+      "name": "Kalray",
+      "exchange": "EPA",
+      "qty": 80,
+      "pru_eur": 7.17,
+      "envelope": "PEA-PME",
+      "sleeve": "Semi infra/logic"
+    }
+  ],
+
+  "watchlist": [
+    {"ticker": "PANW", "name": "Palo Alto Networks", "reason": "Cyber — séquencé après AI"},
+    {"ticker": "LUMN", "name": "Lumentum", "reason": "Photonique — 1-2% max"},
+    {"ticker": "COHR", "name": "Coherent", "reason": "Photonique direct play"},
+    {"ticker": "RKT", "name": "Rocket Companies", "reason": "Position résiduelle TR à clarifier"}
+  ],
+
+  "catalysts": [
+    {"date": "2026-06-03", "ticker": "CRDO", "event": "Earnings Credo Technology — confirmation thèse optique"},
+    {"date": "2026-08-01", "ticker": "ALL_HYPERSCALERS", "event": "Earnings hyperscalers été — suivi guidance AI capex"}
+  ]
+}

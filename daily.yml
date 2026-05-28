@@ -1,0 +1,68 @@
+name: Portfolio Monitor
+
+on:
+  schedule:
+    # ── Récap quotidien à 20h00 heure Paris ──────────────────────────────
+    # Paris = UTC+2 en été (CEST) / UTC+1 en hiver (CET)
+    # → 18h UTC en été (mai–oct), 19h UTC en hiver (nov–avr)
+    # On utilise les deux lignes — le script est idempotent (1 email/jour max)
+    - cron: "0 18 * 4,5,6,7,8,9 *"   # avril–septembre (UTC+2)
+    - cron: "0 19 * 10,11,12,1,2,3 *" # octobre–mars (UTC+1)
+
+    # ── Alertes intraday : toutes les heures, jours de bourse (lun–ven) ──
+    # 7h–17h UTC couvre 9h–19h Paris (heures de marché US/EU)
+    - cron: "0 7-17 * * 1-5"
+
+  # Permet de lancer manuellement depuis GitHub Actions > Run workflow
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mode: daily ou alert"
+        required: true
+        default: "daily"
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Determine mode (daily vs alert)
+        id: mode
+        run: |
+          # Si lancé manuellement → utilise l'input
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Sinon, détermine l'heure Paris pour distinguer daily vs alert
+          HOUR_PARIS=$(TZ="Europe/Paris" date +%H)
+          echo "Heure Paris: $HOUR_PARIS"
+
+          if [ "$HOUR_PARIS" = "20" ]; then
+            echo "mode=daily" >> $GITHUB_OUTPUT
+          else
+            echo "mode=alert" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run monitor (${{ steps.mode.outputs.mode }})
+        env:
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_RECIPIENT:    ${{ secrets.EMAIL_RECIPIENT }}
+        run: |
+          python monitor.py ${{ steps.mode.outputs.mode }}
