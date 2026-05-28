@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PTF Manager — Charles</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #388bfd;
+    --green: #3fb950;
+    --red: #f85149;
+    --amber: #d29922;
+    --radius: 8px;
+    --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Auth screen ── */
+  #auth-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  #auth-screen h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  #auth-screen p { color: var(--muted); margin-bottom: 32px; font-size: 13px; }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .help-link { font-size: 11px; color: var(--muted); margin-top: 4px; display: block; }
+  .help-link a { color: var(--accent); text-decoration: none; }
+
+  /* ── Main app ── */
+  #app { display: none; max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .top-bar h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .top-bar .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat .value { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border-radius: var(--radius); padding: 4px; width: fit-content; }
+  .tab {
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    border: none;
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .tab.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* ── Positions table ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--surface); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 10px 12px; font-size: 13px; }
+  td.mono { font-family: var(--font); font-size: 12px; }
+  .sleeve-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .sleeve-Memory { background: #1a2744; color: #79b8ff; border-color: #1f3a6e; }
+  .sleeve-Hyperscalers { background: #1a2a1a; color: #7ee787; border-color: #1f3d1f; }
+  .sleeve-Semi { background: #2a1a2a; color: #d2a8ff; border-color: #3d1f3d; }
+  .sleeve-Neocloud { background: #2a2210; color: #e3b341; border-color: #3d3010; }
+  .sleeve-Power { background: #2a1a10; color: #ffa657; border-color: #3d2510; }
+  .sleeve-App { background: #102a2a; color: #56d364; border-color: #103d3d; }
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Forms ── */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .form-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-field input, .form-field select, .form-field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--accent); }
+  .form-field select option { background: var(--surface); }
+  .form-field textarea { resize: vertical; min-height: 60px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #4c9aff; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: rgba(248,81,73,0.1); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    font-size: 13px;
+    display: none;
+    gap: 8px;
+    align-items: center;
+    z-index: 100;
+    max-width: 320px;
+  }
+  #toast.show { display: flex; }
+  #toast.success { border-color: var(--green); color: var(--green); }
+  #toast.error { border-color: var(--red); color: var(--red); }
+  #toast.loading { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Edit modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+
+  /* ── Inline edit for qty/pru ── */
+  .quick-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .quick-edit input {
+    width: 80px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 8px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: var(--font);
+    outline: none;
+  }
+  .quick-edit input:focus { border-color: var(--accent); }
+
+  .pv-positive { color: var(--green); }
+  .pv-negative { color: var(--red); }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.triple { grid-template-columns: 1fr; }
+    table { font-size: 12px; }
+    td, th { padding: 8px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Auth Screen ── -->
+<div id="auth-screen">
+  <h1>PTF Manager</h1>
+  <p>Connecte-toi avec ton token GitHub pour gérer ton portefeuille</p>
+  <div class="auth-card">
+    <div class="field">
+      <label>GitHub Username</label>
+      <input id="gh-user" type="text" placeholder="ton-username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Repo name</label>
+      <input id="gh-repo" type="text" value="portfolio-monitor" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>GitHub Personal Access Token</label>
+      <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="current-password">
+      <span class="help-link">
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=PTF+Manager" target="_blank">
+          Créer un token (scope: repo) ↗
+        </a>
+      </span>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="login()">Se connecter</button>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app">
+  <div class="top-bar">
+    <div>
+      <h1>PTF Manager — Charles</h1>
+      <div class="meta" id="last-updated">Chargement...</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="refreshData()">↻ Actualiser</button>
+      <button class="btn btn-secondary" onclick="logout()" style="font-size:12px;padding:8px 12px">Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Positions</div>
+      <div class="value" id="stat-positions">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">Patrimoine total</div>
+      <div class="value" id="stat-patrimoine">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">Seuil alerte global</div>
+      <div class="value" id="stat-threshold">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">Enveloppes</div>
+      <div class="value" id="stat-envelopes">—</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('positions', this)">Positions</button>
+    <button class="tab" onclick="switchTab('add', this)">+ Nouveau trade</button>
+    <button class="tab" onclick="switchTab('config', this)">Configuration</button>
+  </div>
+
+  <!-- Tab: Positions -->
+  <div id="tab-positions">
+    <div class="section-header">
+      <span class="section-title" id="positions-count">— positions</span>
+      <input type="text" placeholder="Filtrer..." id="filter-input" oninput="filterPositions()"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;color:var(--text);font-size:12px;outline:none;width:200px">
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)">
+      <table id="positions-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Nom</th>
+            <th>Sleeve</th>
+            <th style="text-align:right">Qté</th>
+            <th style="text-align:right">PRU (€)</th>
+            <th>Enveloppe</th>
+            <th>Alerte %</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="positions-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Add trade -->
+  <div id="tab-add" style="display:none">
+    <div class="form-card">
+      <h2>Nouveau trade</h2>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Ticker Yahoo Finance *</label>
+          <input id="add-ticker" type="text" placeholder="ex: MU, AIR.PA, RHM.DE">
+        </div>
+        <div class="form-field">
+          <label>Nom affiché *</label>
+          <input id="add-name" type="text" placeholder="ex: Micron Technology">
+        </div>
+        <div class="form-field">
+          <label>Quantité *</label>
+          <input id="add-qty" type="number" min="0.001" step="0.001" placeholder="55">
+        </div>
+        <div class="form-field">
+          <label>PRU (€) *</label>
+          <input id="add-pru" type="number" min="0" step="0.01" placeholder="115.96">
+        </div>
+        <div class="form-field">
+          <label>Enveloppe *</label>
+          <select id="add-envelope">
+            <option>PEA BoursoBank</option>
+            <option>CTO BoursoBank</option>
+            <option>PEA-PME</option>
+            <option>Trade Republic</option>
+            <option>CTO Bourse Direct</option>
+            <option>PER BoursoBank</option>
+            <option>AV Spirica</option>
+            <option>AV CA35 Floriane</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Sleeve AI</label>
+          <select id="add-sleeve">
+            <option>Memory</option>
+            <option>Semi infra/logic</option>
+            <option>Hyperscalers</option>
+            <option>Neocloud</option>
+            <option>Power</option>
+            <option>App/SaaS</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Seuil alerte % (vide = défaut)</label>
+          <input id="add-threshold" type="number" min="1" max="30" step="0.5" placeholder="5">
+        </div>
+        <div class="form-field full">
+          <label>Notes (stops, catalyseurs...)</label>
+          <textarea id="add-notes" placeholder="ex: Stop 1 à $650 (25 titres), Trim à $850"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="clearAddForm()">Effacer</button>
+        <button class="btn btn-primary" onclick="addPosition()" id="btn-add">Ajouter la position →</button>
+      </div>
+    </div>
+
+    <!-- Quick close position -->
+    <div class="form-card">
+      <h2>Clôturer / Alléger une position</h2>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Ticker à modifier</label>
+          <input id="close-ticker" type="text" placeholder="ex: MU">
+        </div>
+        <div class="form-field">
+          <label>Action</label>
+          <select id="close-action">
+            <option value="reduce">Alléger (réduire la qté)</option>
+            <option value="close">Clôturer entièrement</option>
+          </select>
+        </div>
+        <div class="form-field" id="close-qty-field">
+          <label>Nouvelle quantité totale</label>
+          <input id="close-qty" type="number" min="0" step="0.001" placeholder="30">
+        </div>
+        <div class="form-field">
+          <label>Nouveau PRU (€) si renforcement</label>
+          <input id="close-pru" type="number" step="0.01" placeholder="Laisser vide si inchangé">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="modifyPosition()" id="btn-modify">Modifier →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Config -->
+  <div id="tab-config" style="display:none">
+    <div class="form-card">
+      <h2>Paramètres globaux</h2>
+      <div class="form-grid triple">
+        <div class="form-field">
+          <label>Patrimoine total (€)</label>
+          <input id="cfg-patrimoine" type="number" placeholder="470000">
+        </div>
+        <div class="form-field">
+          <label>Seuil alerte global (%)</label>
+          <input id="cfg-threshold" type="number" step="0.5" placeholder="5">
+        </div>
+        <div class="form-field">
+          <label>Email destinataire</label>
+          <input id="cfg-email" type="email" placeholder="charles@gmail.com">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveConfig()" id="btn-config">Sauvegarder →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Modal ── -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Modifier la position</h2>
+    <input type="hidden" id="edit-ticker-hidden">
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Ticker</label>
+        <input id="edit-ticker" type="text" readonly style="opacity:0.5">
+      </div>
+      <div class="form-field">
+        <label>Nom</label>
+        <input id="edit-name" type="text">
+      </div>
+      <div class="form-field">
+        <label>Quantité</label>
+        <input id="edit-qty" type="number" step="0.001">
+      </div>
+      <div class="form-field">
+        <label>PRU (€)</label>
+        <input id="edit-pru" type="number" step="0.01">
+      </div>
+      <div class="form-field">
+        <label>Enveloppe</label>
+        <select id="edit-envelope">
+          <option>PEA BoursoBank</option>
+          <option>CTO BoursoBank</option>
+          <option>PEA-PME</option>
+          <option>Trade Republic</option>
+          <option>CTO Bourse Direct</option>
+          <option>PER BoursoBank</option>
+          <option>AV Spirica</option>
+          <option>AV CA35 Floriane</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Sleeve</label>
+        <select id="edit-sleeve">
+          <option>Memory</option>
+          <option>Semi infra/logic</option>
+          <option>Hyperscalers</option>
+          <option>Neocloud</option>
+          <option>Power</option>
+          <option>App/SaaS</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Seuil alerte %</label>
+        <input id="edit-threshold" type="number" step="0.5" placeholder="Défaut global">
+      </div>
+      <div class="form-field full">
+        <label>Notes</label>
+        <textarea id="edit-notes"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deletePosition()">Supprimer</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveEdit()" id="btn-save-edit">Sauvegarder →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<script>
+// ── State ──
+let GH = { user: '', repo: '', token: '' };
+let portfolio = null;
+let fileSha = null;
+
+// ── Auth ──
+function login() {
+  GH.user  = document.getElementById('gh-user').value.trim();
+  GH.repo  = document.getElementById('gh-repo').value.trim();
+  GH.token = document.getElementById('gh-token').value.trim();
+  if (!GH.user || !GH.token) return toast('Remplis tous les champs', 'error');
+  localStorage.setItem('ptf_gh', JSON.stringify(GH));
+  loadPortfolio();
+}
+function logout() {
+  localStorage.removeItem('ptf_gh');
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+function tryAutoLogin() {
+  const saved = localStorage.getItem('ptf_gh');
+  if (saved) {
+    GH = JSON.parse(saved);
+    document.getElementById('gh-user').value  = GH.user;
+    document.getElementById('gh-repo').value  = GH.repo;
+    loadPortfolio();
+  }
+}
+
+// ── GitHub API ──
+async function ghFetch(path, opts = {}) {
+  const res = await fetch(`https://api.github.com/repos/${GH.user}/${GH.repo}/${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${GH.token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadPortfolio() {
+  toast('Chargement...', 'loading');
+  try {
+    const data = await ghFetch('contents/portfolio.json');
+    fileSha = data.sha;
+    portfolio = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('last-updated').textContent =
+      `Synchronisé avec GitHub · ${new Date().toLocaleString('fr-FR')}`;
+    renderStats();
+    renderPositions();
+    populateConfig();
+    toast('Portfolio chargé ✓', 'success');
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function savePortfolio(successMsg = 'Sauvegardé ✓') {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(portfolio, null, 2))));
+  const data = await ghFetch('contents/portfolio.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `PTF Manager: ${successMsg}`,
+      content,
+      sha: fileSha
+    })
+  });
+  fileSha = data.content.sha;
+  document.getElementById('last-updated').textContent =
+    `Dernière sauvegarde: ${new Date().toLocaleString('fr-FR')}`;
+  toast(successMsg, 'success');
+}
+
+function refreshData() { loadPortfolio(); }
+
+// ── Render ──
+function renderStats() {
+  const cfg = portfolio.config;
+  const pos = portfolio.positions || [];
+  const envelopes = [...new Set(pos.map(p => p.envelope))].length;
+  document.getElementById('stat-positions').textContent = pos.length;
+  document.getElementById('stat-patrimoine').textContent =
+    (cfg.patrimoine_total_eur || 0).toLocaleString('fr-FR') + ' €';
+  document.getElementById('stat-threshold').textContent =
+    (cfg.alert_threshold_pct || 5) + ' %';
+  document.getElementById('stat-envelopes').textContent = envelopes;
+}
+
+function renderPositions(filter = '') {
+  const positions = (portfolio.positions || []).filter(p => {
+    if (!filter) return true;
+    const q = filter.toLowerCase();
+    return p.ticker.toLowerCase().includes(q) ||
+           p.name.toLowerCase().includes(q) ||
+           (p.sleeve || '').toLowerCase().includes(q) ||
+           (p.envelope || '').toLowerCase().includes(q);
+  });
+
+  document.getElementById('positions-count').textContent = `${positions.length} position${positions.length > 1 ? 's' : ''}`;
+  const tbody = document.getElementById('positions-body');
+  tbody.innerHTML = '';
+
+  positions.forEach(pos => {
+    const sleeveKey = (pos.sleeve || 'Other').replace('/','').replace(' ','');
+    const threshold = pos.alert_threshold_override || portfolio.config.alert_threshold_pct || 5;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="font-weight:600;color:var(--accent)">${pos.ticker}</td>
+      <td>${pos.name}</td>
+      <td><span class="sleeve-badge sleeve-${sleeveKey}">${pos.sleeve || 'Other'}</span></td>
+      <td class="mono" style="text-align:right">${pos.qty}</td>
+      <td class="mono" style="text-align:right">${pos.pru_eur.toFixed(2)}</td>
+      <td style="color:var(--muted);font-size:12px">${pos.envelope}</td>
+      <td class="mono" style="text-align:center;color:var(--amber)">${threshold}%</td>
+      <td>
+        <button class="action-btn" onclick="openEditModal('${pos.ticker}')">Éditer</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterPositions() {
+  renderPositions(document.getElementById('filter-input').value);
+}
+
+function populateConfig() {
+  const cfg = portfolio.config || {};
+  document.getElementById('cfg-patrimoine').value = cfg.patrimoine_total_eur || '';
+  document.getElementById('cfg-threshold').value  = cfg.alert_threshold_pct || '';
+  document.getElementById('cfg-email').value      = cfg.email_recipient || '';
+}
+
+// ── Tabs ──
+function switchTab(name, el) {
+  ['positions','add','config'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Add position ──
+function clearAddForm() {
+  ['ticker','name','qty','pru','threshold','notes'].forEach(f =>
+    document.getElementById('add-' + f).value = '');
+}
+
+async function addPosition() {
+  const ticker = document.getElementById('add-ticker').value.trim().toUpperCase();
+  const name   = document.getElementById('add-name').value.trim();
+  const qty    = parseFloat(document.getElementById('add-qty').value);
+  const pru    = parseFloat(document.getElementById('add-pru').value);
+  if (!ticker || !name || isNaN(qty) || isNaN(pru)) {
+    return toast('Remplis les champs obligatoires (*)', 'error');
+  }
+  const existing = (portfolio.positions || []).findIndex(p => p.ticker === ticker);
+  if (existing >= 0) return toast(`${ticker} existe déjà — utilise Éditer`, 'error');
+
+  const threshold = document.getElementById('add-threshold').value;
+  const newPos = {
+    ticker,
+    name,
+    qty,
+    pru_eur: pru,
+    envelope: document.getElementById('add-envelope').value,
+    sleeve:   document.getElementById('add-sleeve').value,
+    ...(threshold ? { alert_threshold_override: parseFloat(threshold) } : {}),
+    notes: document.getElementById('add-notes').value.trim() || undefined
+  };
+  if (!portfolio.positions) portfolio.positions = [];
+  portfolio.positions.push(newPos);
+
+  const btn = document.getElementById('btn-add');
+  btn.disabled = true; btn.textContent = 'Sauvegarde...';
+  try {
+    await savePortfolio(`Ajout ${ticker}`);
+    renderStats(); renderPositions();
+    clearAddForm();
+    switchTab('positions', document.querySelectorAll('.tab')[0]);
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+    portfolio.positions.pop();
+  } finally { btn.disabled = false; btn.textContent = 'Ajouter la position →'; }
+}
+
+// ── Modify position (quick close/reduce) ──
+document.getElementById('close-action').addEventListener('change', function() {
+  document.getElementById('close-qty-field').style.display =
+    this.value === 'reduce' ? 'flex' : 'none';
+});
+
+async function modifyPosition() {
+  const ticker = document.getElementById('close-ticker').value.trim().toUpperCase();
+  const action = document.getElementById('close-action').value;
+  const idx = (portfolio.positions || []).findIndex(p => p.ticker === ticker);
+  if (idx < 0) return toast(`${ticker} non trouvé`, 'error');
+
+  if (action === 'close') {
+    if (!confirm(`Supprimer entièrement ${ticker} du portefeuille ?`)) return;
+    portfolio.positions.splice(idx, 1);
+  } else {
+    const newQty = parseFloat(document.getElementById('close-qty').value);
+    if (isNaN(newQty) || newQty < 0) return toast('Qté invalide', 'error');
+    const newPru = document.getElementById('close-pru').value;
+    portfolio.positions[idx].qty = newQty;
+    if (newPru) portfolio.positions[idx].pru_eur = parseFloat(newPru);
+    if (newQty === 0) portfolio.positions.splice(idx, 1);
+  }
+
+  const btn = document.getElementById('btn-modify');
+  btn.disabled = true; btn.textContent = 'Sauvegarde...';
+  try {
+    await savePortfolio(`Modif ${ticker}`);
+    renderStats(); renderPositions();
+    document.getElementById('close-ticker').value = '';
+    document.getElementById('close-qty').value = '';
+    document.getElementById('close-pru').value = '';
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  } finally { btn.disabled = false; btn.textContent = 'Modifier →'; }
+}
+
+// ── Edit modal ──
+function openEditModal(ticker) {
+  const pos = (portfolio.positions || []).find(p => p.ticker === ticker);
+  if (!pos) return;
+  document.getElementById('edit-ticker-hidden').value = ticker;
+  document.getElementById('edit-ticker').value    = pos.ticker;
+  document.getElementById('edit-name').value      = pos.name;
+  document.getElementById('edit-qty').value       = pos.qty;
+  document.getElementById('edit-pru').value       = pos.pru_eur;
+  document.getElementById('edit-envelope').value  = pos.envelope;
+  document.getElementById('edit-sleeve').value    = pos.sleeve || 'Other';
+  document.getElementById('edit-threshold').value = pos.alert_threshold_override || '';
+  document.getElementById('edit-notes').value     = pos.notes || '';
+  document.getElementById('edit-modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('show');
+}
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+async function saveEdit() {
+  const ticker = document.getElementById('edit-ticker-hidden').value;
+  const idx = (portfolio.positions || []).findIndex(p => p.ticker === ticker);
+  if (idx < 0) return;
+  const threshold = document.getElementById('edit-threshold').value;
+  const notes = document.getElementById('edit-notes').value.trim();
+  portfolio.positions[idx] = {
+    ...portfolio.positions[idx],
+    name:      document.getElementById('edit-name').value.trim(),
+    qty:       parseFloat(document.getElementById('edit-qty').value),
+    pru_eur:   parseFloat(document.getElementById('edit-pru').value),
+    envelope:  document.getElementById('edit-envelope').value,
+    sleeve:    document.getElementById('edit-sleeve').value,
+    ...(threshold ? { alert_threshold_override: parseFloat(threshold) } : { alert_threshold_override: undefined }),
+    ...(notes ? { notes } : { notes: undefined })
+  };
+  const btn = document.getElementById('btn-save-edit');
+  btn.disabled = true; btn.textContent = 'Sauvegarde...';
+  try {
+    await savePortfolio(`Édition ${ticker}`);
+    closeModal(); renderStats(); renderPositions();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  } finally { btn.disabled = false; btn.textContent = 'Sauvegarder →'; }
+}
+
+async function deletePosition() {
+  const ticker = document.getElementById('edit-ticker-hidden').value;
+  if (!confirm(`Supprimer ${ticker} du portefeuille ?`)) return;
+  portfolio.positions = (portfolio.positions || []).filter(p => p.ticker !== ticker);
+  try {
+    await savePortfolio(`Suppression ${ticker}`);
+    closeModal(); renderStats(); renderPositions();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  }
+}
+
+// ── Save config ──
+async function saveConfig() {
+  portfolio.config.patrimoine_total_eur = parseFloat(document.getElementById('cfg-patrimoine').value) || portfolio.config.patrimoine_total_eur;
+  portfolio.config.alert_threshold_pct  = parseFloat(document.getElementById('cfg-threshold').value)  || portfolio.config.alert_threshold_pct;
+  portfolio.config.email_recipient      = document.getElementById('cfg-email').value.trim()            || portfolio.config.email_recipient;
+  const btn = document.getElementById('btn-config');
+  btn.disabled = true; btn.textContent = 'Sauvegarde...';
+  try {
+    await savePortfolio('Config mise à jour');
+    renderStats();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  } finally { btn.disabled = false; btn.textContent = 'Sauvegarder →'; }
+}
+
+// ── Toast ──
+let toastTimer;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Init ──
+tryAutoLogin();
+</script>
+</body>
+</html>
