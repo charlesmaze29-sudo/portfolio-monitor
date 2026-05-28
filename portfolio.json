@@ -29,7 +29,7 @@
       "envelope": "Trade Republic",
       "sleeve": "Memory",
       "alert_threshold_override": 4.0,
-      "notes": "Stops manuels: alerte 1010€ / trailing 970€ / hard 915€"
+      "notes": "Stops manuels: alerte 1010€ / trailing 970€ / hard 915€. Cours 28/05: 1315€"
     },
     {
       "ticker": "MSFT",
@@ -89,8 +89,8 @@
       "ticker": "CEG",
       "name": "Constellation Energy",
       "exchange": "NASDAQ",
-      "qty": 16,
-      "pru_eur": 244.96,
+      "qty": 25,
+      "pru_eur": 240.48,
       "envelope": "CTO BoursoBank",
       "sleeve": "Power"
     },
@@ -144,8 +144,8 @@
       "ticker": "NBIS",
       "name": "Nebius Group",
       "exchange": "NASDAQ",
-      "qty": 10,
-      "pru_eur": 195.09,
+      "qty": 19,
+      "pru_eur": 190.13,
       "envelope": "CTO BoursoBank",
       "sleeve": "Neocloud"
     },
@@ -172,10 +172,63 @@
       "name": "Salesforce",
       "exchange": "NYSE",
       "qty": 12,
-      "pru_eur": 152.0,
+      "pru_eur": 150.89,
       "envelope": "CTO BoursoBank",
-      "sleeve": "App/SaaS",
-      "notes": "Entrée récente — earnings 27 mai catalyseur"
+      "sleeve": "App/SaaS"
+    },
+    {
+      "ticker": "CLSK",
+      "name": "CleanSpark",
+      "exchange": "NASDAQ",
+      "qty": 120,
+      "pru_eur": 14.28,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "CRWV",
+      "name": "CoreWeave",
+      "exchange": "NASDAQ",
+      "qty": 20,
+      "pru_eur": 93.51,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Neocloud"
+    },
+    {
+      "ticker": "IFX.DE",
+      "name": "Infineon Technologies",
+      "exchange": "XETRA",
+      "qty": 30,
+      "pru_eur": 79.06,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "ABNB",
+      "name": "Airbnb",
+      "exchange": "NASDAQ",
+      "qty": 25,
+      "pru_eur": 119.86,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "ALO.PA",
+      "name": "Alstom",
+      "exchange": "EPA",
+      "qty": 150,
+      "pru_eur": 16.70,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "MP",
+      "name": "MP Materials",
+      "exchange": "NYSE",
+      "qty": 30,
+      "pru_eur": 59.40,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
     },
     {
       "ticker": "ASML",
@@ -223,7 +276,7 @@
       "sleeve": "Other"
     },
     {
-      "ticker": "BAN.PA",
+      "ticker": "BNP.PA",
       "name": "BNP Paribas",
       "exchange": "EPA",
       "qty": 30,
@@ -250,6 +303,51 @@
       "sleeve": "Other"
     },
     {
+      "ticker": "STM.PA",
+      "name": "STMicroelectronics",
+      "exchange": "EPA",
+      "qty": 80,
+      "pru_eur": 52.08,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "OR.PA",
+      "name": "L'Oréal",
+      "exchange": "EPA",
+      "qty": 12,
+      "pru_eur": 350.89,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "EL.PA",
+      "name": "EssilorLuxottica",
+      "exchange": "EPA",
+      "qty": 40,
+      "pru_eur": 210.86,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "SAN.PA",
+      "name": "Banco Santander",
+      "exchange": "EPA",
+      "qty": 250,
+      "pru_eur": 10.70,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "ALV.DE",
+      "name": "Allianz",
+      "exchange": "XETRA",
+      "qty": 7,
+      "pru_eur": 389.41,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Other"
+    },
+    {
       "ticker": "LBIRD.PA",
       "name": "Lumibird",
       "exchange": "EPA",
@@ -270,21 +368,65 @@
       "notes": "Pivot VOA/photonique — thèse en cours"
     },
     {
-      "ticker": "KALRAY.PA",
+      "ticker": "ALKAL.PA",
       "name": "Kalray",
       "exchange": "EPA",
-      "qty": 80,
-      "pru_eur": 7.17,
+      "qty": 200,
+      "pru_eur": 10.64,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "SMCO.PA",
+      "name": "Semco Technologies",
+      "exchange": "EPA",
+      "qty": 30,
+      "pru_eur": 45.20,
+      "envelope": "PEA-PME",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "2CRSI.PA",
+      "name": "2CRSI",
+      "exchange": "EPA",
+      "qty": 30,
+      "pru_eur": 38.45,
+      "envelope": "PEA-PME",
+      "sleeve": "Neocloud"
+    },
+    {
+      "ticker": "ARM",
+      "name": "ARM Holdings",
+      "exchange": "NASDAQ",
+      "qty": 8.054,
+      "pru_eur": 155.0,
+      "envelope": "Trade Republic",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "ASX",
+      "name": "ASE Technology ADR",
+      "exchange": "NYSE",
+      "qty": 123.277,
+      "pru_eur": 10.08,
+      "envelope": "Trade Republic",
+      "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "TSLA",
+      "name": "Tesla",
+      "exchange": "NASDAQ",
+      "qty": 3.889,
+      "pru_eur": 388.0,
+      "envelope": "Trade Republic",
+      "sleeve": "Other"
     }
   ],
 
   "watchlist": [
     {"ticker": "PANW", "name": "Palo Alto Networks", "reason": "Cyber — séquencé après AI"},
     {"ticker": "LUMN", "name": "Lumentum", "reason": "Photonique — 1-2% max"},
-    {"ticker": "COHR", "name": "Coherent", "reason": "Photonique direct play"},
-    {"ticker": "RKT", "name": "Rocket Companies", "reason": "Position résiduelle TR à clarifier"}
+    {"ticker": "COHR", "name": "Coherent", "reason": "Photonique direct play"}
   ],
 
   "catalysts": [
