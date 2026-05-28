@@ -1,16 +1,18 @@
 """
 Portfolio Monitor — Charles
-- Récap quotidien à 20h Paris
-- Alertes intraday si variation > seuil
-- Yahoo Finance pour les prix (gratuit)
-- Claude Haiku pour la synthèse narrative (< $0.30/mois)
-- Envoi email via Gmail SMTP
+- Récap quotidien à 20h Paris (Claude Sonnet — qualité analytique)
+- Alertes intraday si variation > seuil (Claude Haiku — coût minimal)
+- Récap mensuel le dernier jour du mois à 20h30 (Claude Sonnet)
+- Yahoo Finance pour les prix + taux EUR/USD en temps réel
+- Variation totale PTF en € par enveloppe et par sleeve
+- Envoi email HTML via Gmail SMTP
 """
 
 import json
 import os
 import smtplib
 import sys
+from calendar import monthrange
 from datetime import datetime, date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -19,20 +21,21 @@ from zoneinfo import ZoneInfo
 import anthropic
 import yfinance as yf
 
-# ── Config ──────────────────────────────────────────────────────────────────
+# ── Config ───────────────────────────────────────────────────────────────────
 
-PORTFOLIO_FILE = "portfolio.json"
-PARIS_TZ = ZoneInfo("Europe/Paris")
+PORTFOLIO_FILE  = "portfolio.json"
+BASELINE_FILE   = "monthly_baseline.json"
+PARIS_TZ        = ZoneInfo("Europe/Paris")
 
-# Secrets injectés via GitHub Actions secrets (jamais dans le code)
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-GMAIL_USER       = os.environ["GMAIL_USER"]
-GMAIL_APP_PWD    = os.environ["GMAIL_APP_PASSWORD"]   # App Password Gmail, pas le mdp principal
-EMAIL_RECIPIENT  = os.environ.get("EMAIL_RECIPIENT", GMAIL_USER)
+GMAIL_USER        = os.environ["GMAIL_USER"]
+GMAIL_APP_PWD     = os.environ["GMAIL_APP_PASSWORD"]
+EMAIL_RECIPIENT   = os.environ.get("EMAIL_RECIPIENT", GMAIL_USER)
 
-# Modèle haiku = ~$0.0008/1K tokens input, $0.0040/1K output — très économique
-CLAUDE_MODEL = "claude-haiku-4-5-20251001"
-MAX_TOKENS   = 1200   # suffisant pour un récap structuré, limite le coût
+# Modèles — hybride qualité/coût
+MODEL_SONNET = "claude-sonnet-4-6"   # daily + monthly (~$0.55/mois)
+MODEL_HAIKU  = "claude-haiku-4-5-20251001"  # alertes intraday (~$0.05/mois)
+MAX_TOKENS   = 1800
 
 
 # ── Chargement portefeuille ──────────────────────────────────────────────────
@@ -41,18 +44,41 @@ def load_portfolio():
     with open(PORTFOLIO_FILE) as f:
         return json.load(f)
 
+def load_baseline():
+    if os.path.exists(BASELINE_FILE):
+        with open(BASELINE_FILE) as f:
+            return json.load(f)
+    return {}
+
+def save_baseline(data: dict):
+    with open(BASELINE_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# ── Taux de change EUR/USD ───────────────────────────────────────────────────
+
+def fetch_eurusd() -> float:
+    """Taux EUR/USD en temps réel via Yahoo Finance."""
+    try:
+        data = yf.download("EURUSD=X", period="1d", interval="1d",
+                           progress=False, auto_adjust=True)
+        if not data.empty:
+            return float(data["Close"].iloc[-1])
+    except Exception as e:
+        print(f"[WARN] Taux EUR/USD non disponible: {e}", file=sys.stderr)
+    return 1.08  # fallback raisonnable
+
 
 # ── Récupération des prix ────────────────────────────────────────────────────
 
-def fetch_prices(positions: list) -> dict:
+def fetch_prices(positions: list, eurusd: float) -> dict:
     """
     Récupère cours actuel + variation J via yfinance.
-    Retourne dict {ticker: {price, change_pct, prev_close, currency, name}}
+    Calcule variation en € en convertissant USD→EUR au taux du jour.
     """
     tickers = [p["ticker"] for p in positions]
     results = {}
 
-    # Batch download — 1 seul appel réseau pour tous les tickers
     data = yf.download(
         tickers,
         period="2d",
@@ -72,8 +98,7 @@ def fetch_prices(positions: list) -> dict:
                 closes = data["Close"][t] if t in data["Close"].columns else None
 
             if closes is None or len(closes) < 2:
-                # Fallback : appel individuel
-                info = yf.Ticker(t).fast_info
+                info  = yf.Ticker(t).fast_info
                 price = info.last_price
                 prev  = info.previous_close
             else:
@@ -82,20 +107,29 @@ def fetch_prices(positions: list) -> dict:
                 prev  = float(vals.iloc[-2])
 
             change_pct = ((price - prev) / prev * 100) if prev else 0.0
+            currency   = yf.Ticker(t).fast_info.currency or "USD"
+
+            # Conversion en EUR pour les positions USD
+            fx = (1 / eurusd) if currency == "USD" else 1.0
+            price_eur  = price * fx
+            prev_eur   = prev  * fx
+            change_eur = (price_eur - prev_eur) * pos["qty"]
 
             results[t] = {
-                "name":       pos["name"],
-                "price":      price,
-                "prev_close": prev,
-                "change_pct": change_pct,
-                "currency":   yf.Ticker(t).fast_info.currency or "USD",
-                "qty":        pos["qty"],
-                "pru_eur":    pos["pru_eur"],
-                "envelope":   pos["envelope"],
-                "sleeve":     pos["sleeve"],
-                "notes":      pos.get("notes", ""),
-                "threshold":  pos.get("alert_threshold_override",
-                                      None),  # None = on utilisera le défaut config
+                "name":        pos["name"],
+                "price":       price,
+                "price_eur":   price_eur,
+                "prev_close":  prev,
+                "change_pct":  change_pct,
+                "change_eur":  change_eur,
+                "currency":    currency,
+                "qty":         pos["qty"],
+                "pru_eur":     pos["pru_eur"],
+                "valeur_eur":  price_eur * pos["qty"],
+                "envelope":    pos["envelope"],
+                "sleeve":      pos["sleeve"],
+                "notes":       pos.get("notes", ""),
+                "threshold":   pos.get("alert_threshold_override", None),
             }
         except Exception as e:
             print(f"[WARN] Prix non disponible pour {t}: {e}", file=sys.stderr)
@@ -103,90 +137,151 @@ def fetch_prices(positions: list) -> dict:
     return results
 
 
-# ── Détection des variations fortes ─────────────────────────────────────────
+# ── Agrégation par enveloppe et sleeve ──────────────────────────────────────
 
-def detect_movers(prices: dict, default_threshold: float) -> list:
-    """Retourne les positions avec |variation| > seuil."""
-    movers = []
+def aggregate(prices: dict) -> dict:
+    """Calcule variation €/jour par enveloppe et par sleeve."""
+    by_envelope = {}
+    by_sleeve   = {}
+    total_change_eur = 0.0
+    total_valeur_eur = 0.0
+
+    for d in prices.values():
+        env = d["envelope"]
+        slv = d["sleeve"]
+        chg = d["change_eur"]
+        val = d["valeur_eur"]
+
+        by_envelope[env] = by_envelope.get(env, 0.0) + chg
+        by_sleeve[slv]   = by_sleeve.get(slv, 0.0)   + chg
+        total_change_eur += chg
+        total_valeur_eur += val
+
+    return {
+        "total_change_eur": total_change_eur,
+        "total_valeur_eur": total_valeur_eur,
+        "by_envelope":      dict(sorted(by_envelope.items(), key=lambda x: x[1])),
+        "by_sleeve":        dict(sorted(by_sleeve.items(),   key=lambda x: x[1])),
+    }
+
+
+# ── Calcul performance mensuelle ────────────────────────────────────────────
+
+def compute_monthly_perf(prices: dict, baseline: dict) -> dict:
+    """Compare cours actuels vs baseline début de mois."""
+    perfs = {}
+    total_gain = 0.0
+    total_base = 0.0
+
     for ticker, d in prices.items():
-        threshold = d["threshold"] if d["threshold"] else default_threshold
-        if abs(d["change_pct"]) >= threshold:
-            movers.append({
-                "ticker":     ticker,
-                "name":       d["name"],
-                "change_pct": d["change_pct"],
-                "price":      d["price"],
-                "sleeve":     d["sleeve"],
-                "notes":      d["notes"],
-                "threshold":  threshold,
-            })
-    movers.sort(key=lambda x: abs(x["change_pct"]), reverse=True)
-    return movers
+        if ticker in baseline:
+            base_price_eur = baseline[ticker]["price_eur"]
+            curr_price_eur = d["price_eur"]
+            qty            = d["qty"]
+            gain_eur       = (curr_price_eur - base_price_eur) * qty
+            base_val       = base_price_eur * qty
+            pct            = ((curr_price_eur / base_price_eur) - 1) * 100 if base_price_eur else 0
+            perfs[ticker]  = {
+                "name":      d["name"],
+                "gain_eur":  gain_eur,
+                "pct":       pct,
+                "sleeve":    d["sleeve"],
+            }
+            total_gain += gain_eur
+            total_base += base_val
+
+    total_pct = (total_gain / total_base * 100) if total_base else 0
+    return {"positions": perfs, "total_gain": total_gain, "total_pct": total_pct}
 
 
-# ── Appel Claude (synthèse narrative) ────────────────────────────────────────
+# ── Appels Claude ────────────────────────────────────────────────────────────
 
-def call_claude(prompt: str) -> str:
-    """Appel Claude Haiku — optimisé coût."""
+def call_claude(prompt: str, model: str) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     msg = client.messages.create(
-        model=CLAUDE_MODEL,
+        model=model,
         max_tokens=MAX_TOKENS,
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text
 
 
-def build_daily_prompt(prices: dict, movers: list, portfolio: dict) -> str:
-    today = datetime.now(PARIS_TZ).strftime("%d/%m/%Y")
+def build_daily_prompt(prices: dict, movers: list, agg: dict, portfolio: dict) -> str:
+    today      = datetime.now(PARIS_TZ).strftime("%d/%m/%Y")
     patrimoine = portfolio["config"]["patrimoine_total_eur"]
+    total_chg  = agg["total_change_eur"]
+    total_val  = agg["total_valeur_eur"]
+    sign_total = "▲" if total_chg >= 0 else "▼"
 
-    # Résumé compact des positions pour limiter les tokens
-    positions_summary = []
-    for t, d in prices.items():
+    # Bloc variation totale
+    variation_bloc = f"""VARIATION TOTALE PORTEFEUILLE (titres suivis):
+{sign_total} {total_chg:+,.0f} € sur la journée ({total_chg/total_val*100:+.2f}% de la valeur suivie)
+
+Par enveloppe:
+"""
+    for env, chg in agg["by_envelope"].items():
+        s = "▲" if chg >= 0 else "▼"
+        variation_bloc += f"  {s} {env}: {chg:+,.0f} €\n"
+
+    variation_bloc += "\nPar sleeve AI:\n"
+    for slv, chg in agg["by_sleeve"].items():
+        s = "▲" if chg >= 0 else "▼"
+        variation_bloc += f"  {s} {slv}: {chg:+,.0f} €\n"
+
+    # Positions détaillées
+    positions_lines = []
+    for t, d in sorted(prices.items(), key=lambda x: x[1]["change_pct"]):
         sign = "▲" if d["change_pct"] > 0 else "▼" if d["change_pct"] < 0 else "—"
-        positions_summary.append(
+        positions_lines.append(
             f"- {d['name']} ({t}): {sign}{abs(d['change_pct']):.1f}% | "
-            f"cours {d['price']:.2f} | sleeve: {d['sleeve']}"
+            f"{d['change_eur']:+,.0f}€ | cours {d['price']:.2f} {d['currency']} | {d['sleeve']}"
         )
 
-    movers_summary = ""
+    movers_bloc = ""
     if movers:
-        movers_summary = "\nMOUVEMENTS FORTS DU JOUR (> seuil):\n"
+        movers_bloc = "\nMOUVEMENTS FORTS (> seuil d'alerte):\n"
         for m in movers:
-            movers_summary += f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% ⚠️\n"
+            movers_bloc += f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% ⚠️"
             if m["notes"]:
-                movers_summary += f"  → Note: {m['notes']}\n"
+                movers_bloc += f" — {m['notes']}"
+            movers_bloc += "\n"
 
     # Catalyseurs proches
     upcoming = []
     today_dt = date.today()
     for cat in portfolio.get("catalysts", []):
         try:
-            cat_dt = date.fromisoformat(cat["date"])
+            cat_dt     = date.fromisoformat(cat["date"])
             days_ahead = (cat_dt - today_dt).days
             if 0 <= days_ahead <= 7:
-                upcoming.append(f"- {cat['date']}: {cat['ticker']} — {cat['event']}")
+                upcoming.append(f"- J+{days_ahead}: {cat['ticker']} — {cat['event']}")
         except Exception:
             pass
-    catalysts_block = ("\nCATALYSEURS DANS LES 7 JOURS:\n" + "\n".join(upcoming)) if upcoming else ""
+    catalysts_bloc = ("\nCATALYSEURS DANS LES 7 JOURS:\n" + "\n".join(upcoming)) if upcoming else ""
 
-    prompt = f"""Tu es l'assistant financier personnel de Charles, investisseur avec un patrimoine ~{patrimoine:,}€.
+    return f"""Tu es l'analyste financier personnel de Charles, investisseur actif avec un patrimoine ~{patrimoine:,}€, horizon 5+ ans, fortement exposé à la chaîne de valeur IA.
 Date: {today}
 
-VARIATIONS DU PORTEFEUILLE AUJOURD'HUI:
-{chr(10).join(positions_summary)}
-{movers_summary}{catalysts_block}
+{variation_bloc}
+DÉTAIL POSITIONS (trié par variation):
+{chr(10).join(positions_lines)}
+{movers_bloc}{catalysts_bloc}
 
-Produis un récap de soirée CONCIS en français, structuré en 3 blocs:
+Produis le récap de soirée en français, structuré en 4 blocs:
 
-1. **RÉSUMÉ EN 2 PHRASES** — l'essentiel de la journée pour le portefeuille de Charles
-2. **POINTS D'ATTENTION** — uniquement les lignes avec variation notable ou catalyseur proche (bullet points, max 5)
-3. **ACTION REQUISE ?** — une seule ligne: oui/non et pourquoi (ex: vérifier stop Micron, renforcer si conditions remplies, etc.)
+**📊 BILAN DU JOUR**
+Variation totale en € et %, commentaire en 2 phrases sur ce qui a dominé (macro, secteur, catalyseur spécifique).
 
-Sois direct, précis, sans rembourrage. Pas de disclaimer. Ton: analyste senior qui parle à un pair."""
+**🔍 POINTS D'ATTENTION**
+Max 5 bullets. Uniquement les lignes avec variation notable, catalyseur proche, ou signal à surveiller. Pour chaque point: cause probable du mouvement + implication concrète pour le portefeuille.
 
-    return prompt
+**🌍 CONTEXTE DE MARCHÉ**
+2-3 phrases sur le contexte macro/sectoriel du jour qui explique les mouvements (Fed, AI capex, résultats, géopolitique...). Relie au portefeuille de Charles.
+
+**⚡ ACTION REQUISE ?**
+Une seule ligne tranchée: OUI ou NON, et pourquoi. Si oui: quelle action précise sur quelle ligne.
+
+Ton: analyste senior s'adressant à un pair. Direct, chiffré, sans rembourrage ni disclaimer."""
 
 
 def build_alert_prompt(movers: list) -> str:
@@ -194,139 +289,240 @@ def build_alert_prompt(movers: list) -> str:
     for m in movers:
         lines.append(
             f"- {m['name']} ({m['ticker']}): {m['change_pct']:+.1f}% "
-            f"(seuil: {m['threshold']}%) | sleeve: {m['sleeve']}"
+            f"(seuil: {m['threshold']}%) | {m['change_eur']:+,.0f}€ | sleeve: {m['sleeve']}"
         )
         if m["notes"]:
             lines.append(f"  Contexte: {m['notes']}")
 
-    prompt = f"""Alerte portefeuille Charles — {datetime.now(PARIS_TZ).strftime('%d/%m/%Y %H:%M')}
+    return f"""Alerte portefeuille Charles — {datetime.now(PARIS_TZ).strftime('%d/%m/%Y %H:%M')}
 
-Variations dépassant les seuils d'alerte:
+Variations dépassant les seuils:
 {chr(10).join(lines)}
 
-En 3-4 phrases maximum:
-1. Quelle est la cause probable de ce mouvement ?
-2. Est-ce que ça déclenche une action concrète (stop, trim, renforcement) ?
+En 3-4 phrases:
+1. Cause probable du mouvement
+2. Action concrète déclenchée ? (stop, trim, renforcement, ou rien)
 3. Urgence: URGENT / SURVEILLER / INFO
 
-Réponse directe, pas de disclaimer."""
-
-    return prompt
+Direct, pas de disclaimer."""
 
 
-# ── Construction des emails HTML ─────────────────────────────────────────────
+def build_monthly_prompt(prices: dict, perf: dict, agg: dict,
+                         portfolio: dict, month_label: str) -> str:
+    patrimoine = portfolio["config"]["patrimoine_total_eur"]
+    total_gain = perf["total_gain"]
+    total_pct  = perf["total_pct"]
 
-def build_email_html(subject_type: str, narrative: str, prices: dict,
-                     movers: list, portfolio: dict) -> tuple[str, str]:
-    """Retourne (sujet, html)."""
-    now = datetime.now(PARIS_TZ)
-    date_str = now.strftime("%d/%m/%Y %H:%M")
+    # Top performers
+    sorted_pos = sorted(perf["positions"].items(), key=lambda x: x[1]["pct"], reverse=True)
+    top5    = sorted_pos[:5]
+    bottom5 = sorted_pos[-5:]
 
-    # Couleurs
+    top_lines = "\n".join(
+        f"  ▲ {v['name']} ({t}): {v['pct']:+.1f}% ({v['gain_eur']:+,.0f}€)"
+        for t, v in top5
+    )
+    bottom_lines = "\n".join(
+        f"  ▼ {v['name']} ({t}): {v['pct']:+.1f}% ({v['gain_eur']:+,.0f}€)"
+        for t, v in bottom5
+    )
+
+    # Par sleeve
+    sleeve_perf = {}
+    for t, v in perf["positions"].items():
+        slv = v["sleeve"]
+        sleeve_perf[slv] = sleeve_perf.get(slv, 0.0) + v["gain_eur"]
+    sleeve_lines = "\n".join(
+        f"  {'▲' if g >= 0 else '▼'} {s}: {g:+,.0f}€"
+        for s, g in sorted(sleeve_perf.items(), key=lambda x: x[1], reverse=True)
+    )
+
+    return f"""Tu es l'analyste financier personnel de Charles. Patrimoine ~{patrimoine:,}€, fortement exposé IA, horizon 5+ ans.
+
+BILAN MENSUEL — {month_label}
+Performance totale (positions suivies): {total_gain:+,.0f}€ ({total_pct:+.2f}%)
+
+TOP 5 PERFORMERS DU MOIS:
+{top_lines}
+
+BOTTOM 5 DU MOIS:
+{bottom_lines}
+
+PAR SLEEVE:
+{sleeve_lines}
+
+Produis le bilan mensuel en français, structuré en 4 blocs:
+
+**📅 BILAN {month_label.upper()}**
+Performance chiffrée, 2 phrases sur ce qui a dominé ce mois.
+
+**🏆 CE QUI A FONCTIONNÉ / CE QUI N'A PAS FONCTIONNÉ**
+3 points positifs + 3 points négatifs, avec explication brève de chaque.
+
+**🔄 ÉVOLUTION DE LA THÈSE**
+La thèse AI value chain est-elle validée, challengée, ou en mutation ? Quels signaux du mois le confirment ou l'infirment ?
+
+**📋 AJUSTEMENTS RECOMMANDÉS POUR LE MOIS PROCHAIN**
+Max 3 actions concrètes: renforcement, allègement, repositionnement. Justification en une ligne chacune.
+
+Ton: analyste senior, direct, chiffré. Pas de disclaimer."""
+
+
+# ── Construction emails HTML ─────────────────────────────────────────────────
+
+def build_email_html(email_type: str, narrative: str, prices: dict,
+                     movers: list, portfolio: dict,
+                     agg: dict = None, perf: dict = None,
+                     month_label: str = "") -> tuple[str, str]:
+    now    = datetime.now(PARIS_TZ)
     green  = "#22c55e"
     red    = "#ef4444"
     amber  = "#f59e0b"
     bg     = "#0f172a"
     card   = "#1e293b"
+    card2  = "#162032"
     border = "#334155"
     text   = "#e2e8f0"
     muted  = "#94a3b8"
 
-    # Tableau positions (top movers en tête)
-    all_pos = sorted(prices.values(), key=lambda x: abs(x["change_pct"]), reverse=True)
+    # ── Bloc variation totale (daily + monthly) ──
+    variation_html = ""
+    if agg:
+        total_chg = agg["total_change_eur"]
+        total_val = agg["total_valeur_eur"]
+        chg_color = green if total_chg >= 0 else red
+        chg_pct   = total_chg / total_val * 100 if total_val else 0
+
+        env_rows = ""
+        for env, chg in agg["by_envelope"].items():
+            c = green if chg >= 0 else red
+            env_rows += f"""<tr>
+              <td style="padding:5px 10px;color:{muted};font-size:12px">{env}</td>
+              <td style="padding:5px 10px;color:{c};font-weight:600;text-align:right;font-family:monospace">
+                {chg:+,.0f} €</td></tr>"""
+
+        slv_rows = ""
+        for slv, chg in agg["by_sleeve"].items():
+            c = green if chg >= 0 else red
+            slv_rows += f"""<tr>
+              <td style="padding:5px 10px;color:{muted};font-size:12px">{slv}</td>
+              <td style="padding:5px 10px;color:{c};font-weight:600;text-align:right;font-family:monospace">
+                {chg:+,.0f} €</td></tr>"""
+
+        variation_html = f"""
+        <div style="margin-bottom:24px">
+          <div style="font-size:11px;color:{muted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+            Variation totale du jour</div>
+          <div style="background:{card};border:1px solid {border};border-radius:10px;padding:16px 20px;
+                      margin-bottom:12px;text-align:center">
+            <div style="font-size:32px;font-weight:700;color:{chg_color};font-family:monospace">
+              {total_chg:+,.0f} €</div>
+            <div style="font-size:14px;color:{chg_color};margin-top:4px">{chg_pct:+.2f}% de la valeur suivie</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:{card};border:1px solid {border};border-radius:10px;overflow:hidden">
+              <div style="font-size:10px;color:{muted};text-transform:uppercase;letter-spacing:1px;
+                          padding:8px 10px;border-bottom:1px solid {border}">Par enveloppe</div>
+              <table style="width:100%;border-collapse:collapse">{env_rows}</table>
+            </div>
+            <div style="background:{card};border:1px solid {border};border-radius:10px;overflow:hidden">
+              <div style="font-size:10px;color:{muted};text-transform:uppercase;letter-spacing:1px;
+                          padding:8px 10px;border-bottom:1px solid {border}">Par sleeve</div>
+              <table style="width:100%;border-collapse:collapse">{slv_rows}</table>
+            </div>
+          </div>
+        </div>"""
+
+    # ── Tableau positions ──
+    all_pos = sorted(prices.values(), key=lambda x: x["change_pct"], reverse=True)
     rows = ""
     for d in all_pos:
-        chg = d["change_pct"]
-        color = green if chg > 0 else red if chg < 0 else muted
-        flag = " ⚠️" if abs(chg) >= (d["threshold"] if d["threshold"] else
-                                       portfolio["config"]["alert_threshold_pct"]) else ""
-        # Valeur position en cours
-        val_eur = d["qty"] * d["price"]  # approximation — currency mix
-        rows += f"""
-        <tr>
-          <td style="padding:6px 10px;color:{text};font-weight:500">{d['name']}</td>
-          <td style="padding:6px 10px;color:{muted};font-size:12px">{d['sleeve']}</td>
-          <td style="padding:6px 10px;color:{color};font-weight:700;text-align:right">
-            {chg:+.1f}%{flag}
-          </td>
-          <td style="padding:6px 10px;color:{muted};text-align:right">{d['price']:.2f}</td>
-          <td style="padding:6px 10px;color:{muted};text-align:right">{d['envelope']}</td>
+        chg      = d["change_pct"]
+        chg_eur  = d["change_eur"]
+        c        = green if chg > 0 else red if chg < 0 else muted
+        threshold = d["threshold"] if d["threshold"] else portfolio["config"]["alert_threshold_pct"]
+        flag     = " ⚠️" if abs(chg) >= threshold else ""
+        rows += f"""<tr style="border-bottom:1px solid {border}">
+          <td style="padding:6px 10px;color:{text};font-weight:500;font-size:13px">{d['name']}</td>
+          <td style="padding:6px 10px;color:{muted};font-size:11px">{d['sleeve']}</td>
+          <td style="padding:6px 10px;color:{c};font-weight:700;text-align:right;font-size:13px">
+            {chg:+.1f}%{flag}</td>
+          <td style="padding:6px 10px;color:{c};text-align:right;font-size:12px;font-family:monospace">
+            {chg_eur:+,.0f}€</td>
+          <td style="padding:6px 10px;color:{muted};text-align:right;font-size:11px">{d['envelope']}</td>
         </tr>"""
 
-    # Narrative formatée (markdown basique → HTML)
+    # ── Narrative HTML ──
     narrative_html = narrative.replace("\n", "<br>")
-    for marker in ["**RÉSUMÉ", "**POINTS", "**ACTION"]:
+    for marker, color in [("**📊", amber), ("**🔍", amber), ("**🌍", amber),
+                           ("**⚡", amber), ("**📅", amber), ("**🏆", amber),
+                           ("**🔄", amber), ("**📋", amber)]:
         narrative_html = narrative_html.replace(
-            marker, f'<span style="color:{amber};font-weight:700">{marker}')
+            marker, f'<span style="color:{color};font-weight:700">{marker}')
     narrative_html = narrative_html.replace("**", "</span>")
 
-    if subject_type == "daily":
-        subject = f"📊 Portefeuille — Récap {now.strftime('%d/%m/%Y')}"
-        badge_color = "#3b82f6"
-        badge_text = "RÉCAP QUOTIDIEN"
+    # ── Header / subject ──
+    if email_type == "daily":
+        subject      = f"📊 PTF — {now.strftime('%d/%m/%Y')} | {agg['total_change_eur']:+,.0f}€"
+        badge_color  = "#3b82f6"
+        badge_text   = "RÉCAP QUOTIDIEN"
+    elif email_type == "monthly":
+        subject      = f"📅 Bilan mensuel — {month_label}"
+        badge_color  = "#8b5cf6"
+        badge_text   = f"BILAN {month_label.upper()}"
     else:
-        worst = movers[0] if movers else {}
-        subject = f"⚠️ Alerte {worst.get('name','')}: {worst.get('change_pct',0):+.1f}% — {now.strftime('%H:%M')}"
-        badge_color = "#ef4444"
-        badge_text = f"ALERTE — {len(movers)} VALEUR{'S' if len(movers)>1 else ''}"
+        worst        = movers[0] if movers else {}
+        subject      = f"⚠️ Alerte {worst.get('name','')}: {worst.get('change_pct',0):+.1f}% — {now.strftime('%H:%M')}"
+        badge_color  = "#ef4444"
+        badge_text   = f"ALERTE — {len(movers)} VALEUR{'S' if len(movers)>1 else ''}"
 
     html = f"""<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:{bg};font-family:'Segoe UI',Arial,sans-serif;color:{text}">
-  <div style="max-width:680px;margin:0 auto;padding:24px 16px">
+<div style="max-width:680px;margin:0 auto;padding:24px 16px">
 
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;
-                border-bottom:1px solid {border};padding-bottom:16px;margin-bottom:24px">
-      <div>
-        <div style="font-size:11px;letter-spacing:2px;color:{muted};text-transform:uppercase
-                    ;margin-bottom:4px">{badge_text}</div>
-        <div style="font-size:22px;font-weight:700;color:{text}">{now.strftime('%d %B %Y')}</div>
-        <div style="font-size:12px;color:{muted}">{date_str} (heure Paris)</div>
-      </div>
-      <div style="background:{badge_color};color:white;padding:6px 14px;border-radius:6px;
-                  font-size:12px;font-weight:700">CHARLES</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;
+              border-bottom:1px solid {border};padding-bottom:16px;margin-bottom:24px">
+    <div>
+      <div style="font-size:11px;letter-spacing:2px;color:{muted};text-transform:uppercase;margin-bottom:4px">
+        {badge_text}</div>
+      <div style="font-size:22px;font-weight:700;color:{text}">{now.strftime('%d %B %Y')}</div>
+      <div style="font-size:12px;color:{muted}">{now.strftime('%H:%M')} heure Paris</div>
     </div>
-
-    <!-- Narrative Claude -->
-    <div style="background:{card};border:1px solid {border};border-radius:10px;
-                padding:20px;margin-bottom:24px;line-height:1.7;font-size:14px">
-      {narrative_html}
-    </div>
-
-    <!-- Tableau positions -->
-    <div style="font-size:11px;color:{muted};text-transform:uppercase;letter-spacing:1px;
-                margin-bottom:10px">Variations du jour</div>
-    <div style="background:{card};border:1px solid {border};border-radius:10px;overflow:hidden;
-                margin-bottom:24px">
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:#263348;font-size:11px;color:{muted};text-transform:uppercase">
-            <th style="padding:8px 10px;text-align:left">Valeur</th>
-            <th style="padding:8px 10px;text-align:left">Sleeve</th>
-            <th style="padding:8px 10px;text-align:right">Var. J</th>
-            <th style="padding:8px 10px;text-align:right">Cours</th>
-            <th style="padding:8px 10px;text-align:right">Enveloppe</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="font-size:11px;color:{muted};text-align:center;
-                border-top:1px solid {border};padding-top:16px">
-      Généré automatiquement par Portfolio Monitor · Claude Haiku API ·
-      <a href="https://github.com" style="color:{muted}">modifier les alertes</a>
-    </div>
-
+    <div style="background:{badge_color};color:white;padding:6px 14px;border-radius:6px;
+                font-size:12px;font-weight:700">CHARLES</div>
   </div>
+
+  {variation_html}
+
+  <div style="background:{card};border:1px solid {border};border-radius:10px;
+              padding:20px;margin-bottom:24px;line-height:1.8;font-size:14px">
+    {narrative_html}
+  </div>
+
+  <div style="font-size:11px;color:{muted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+    Détail positions</div>
+  <div style="background:{card};border:1px solid {border};border-radius:10px;overflow:hidden;margin-bottom:24px">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:{card2};font-size:11px;color:{muted};text-transform:uppercase">
+          <th style="padding:8px 10px;text-align:left">Valeur</th>
+          <th style="padding:8px 10px;text-align:left">Sleeve</th>
+          <th style="padding:8px 10px;text-align:right">Var. %</th>
+          <th style="padding:8px 10px;text-align:right">Var. €</th>
+          <th style="padding:8px 10px;text-align:right">Enveloppe</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>
+  </div>
+
+  <div style="font-size:11px;color:{muted};text-align:center;border-top:1px solid {border};padding-top:16px">
+    Portfolio Monitor · Claude Sonnet 4.6 · EUR/USD live · Données Yahoo Finance
+  </div>
+
+</div>
 </body>
 </html>"""
 
@@ -341,61 +537,103 @@ def send_email(subject: str, html: str):
     msg["From"]    = GMAIL_USER
     msg["To"]      = EMAIL_RECIPIENT
     msg.attach(MIMEText(html, "html"))
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_USER, GMAIL_APP_PWD)
         server.sendmail(GMAIL_USER, EMAIL_RECIPIENT, msg.as_string())
-
     print(f"[OK] Email envoyé: {subject}")
 
 
-# ── Points d'entrée principaux ───────────────────────────────────────────────
+# ── Modes principaux ─────────────────────────────────────────────────────────
 
 def run_daily():
-    """Récap quotidien complet — lancé à 20h Paris."""
-    print("[daily] Démarrage récap quotidien...")
+    print("[daily] Démarrage...")
     portfolio = load_portfolio()
-    prices    = fetch_prices(portfolio["positions"])
-    movers    = detect_movers(prices, portfolio["config"]["alert_threshold_pct"])
+    eurusd    = fetch_eurusd()
+    prices    = fetch_prices(portfolio["positions"], eurusd)
+    movers    = [
+        {**{"ticker": t}, **{k: v for k, v in d.items()}}
+        for t, d in prices.items()
+        if abs(d["change_pct"]) >= (d["threshold"] or portfolio["config"]["alert_threshold_pct"])
+    ]
+    movers.sort(key=lambda x: abs(x["change_pct"]), reverse=True)
+    agg = aggregate(prices)
 
-    print(f"[daily] {len(prices)} positions récupérées, {len(movers)} movers")
+    print(f"[daily] {len(prices)} positions, variation totale: {agg['total_change_eur']:+,.0f}€")
 
-    prompt    = build_daily_prompt(prices, movers, portfolio)
-    narrative = call_claude(prompt)
+    # Mise à jour baseline si 1er du mois
+    today = date.today()
+    if today.day == 1:
+        baseline = {t: {"price_eur": d["price_eur"], "date": str(today)}
+                    for t, d in prices.items()}
+        save_baseline(baseline)
+        print("[daily] Baseline mensuelle mise à jour")
 
-    subject, html = build_email_html("daily", narrative, prices, movers, portfolio)
+    prompt    = build_daily_prompt(prices, movers, agg, portfolio)
+    narrative = call_claude(prompt, MODEL_SONNET)
+    subject, html = build_email_html("daily", narrative, prices, movers, portfolio, agg=agg)
     send_email(subject, html)
     print("[daily] Terminé.")
 
 
 def run_alert():
-    """Check intraday — envoi email seulement si variation > seuil."""
     print("[alert] Vérification intraday...")
     portfolio = load_portfolio()
-    prices    = fetch_prices(portfolio["positions"])
-    movers    = detect_movers(prices, portfolio["config"]["alert_threshold_pct"])
+    eurusd    = fetch_eurusd()
+    prices    = fetch_prices(portfolio["positions"], eurusd)
+    threshold = portfolio["config"]["alert_threshold_pct"]
+
+    movers = []
+    for t, d in prices.items():
+        thr = d["threshold"] or threshold
+        if abs(d["change_pct"]) >= thr:
+            movers.append({**{"ticker": t}, **d})
+    movers.sort(key=lambda x: abs(x["change_pct"]), reverse=True)
 
     if not movers:
         print("[alert] Aucun mover — pas d'email.")
         return
 
-    print(f"[alert] {len(movers)} mover(s) détecté(s) — génération email...")
+    print(f"[alert] {len(movers)} mover(s) détecté(s)...")
+    agg       = aggregate(prices)
     prompt    = build_alert_prompt(movers)
-    narrative = call_claude(prompt)
-
-    subject, html = build_email_html("alert", narrative, prices, movers, portfolio)
+    narrative = call_claude(prompt, MODEL_HAIKU)  # Haiku pour les alertes
+    subject, html = build_email_html("alert", narrative, prices, movers, portfolio, agg=agg)
     send_email(subject, html)
     print("[alert] Terminé.")
+
+
+def run_monthly():
+    print("[monthly] Démarrage bilan mensuel...")
+    portfolio = load_portfolio()
+    baseline  = load_baseline()
+
+    if not baseline:
+        print("[monthly] Pas de baseline disponible — skipping.")
+        return
+
+    eurusd = fetch_eurusd()
+    prices = fetch_prices(portfolio["positions"], eurusd)
+    agg    = aggregate(prices)
+    perf   = compute_monthly_perf(prices, baseline)
+
+    now         = datetime.now(PARIS_TZ)
+    month_label = now.strftime("%B %Y")
+
+    prompt    = build_monthly_prompt(prices, perf, agg, portfolio, month_label)
+    narrative = call_claude(prompt, MODEL_SONNET)
+    subject, html = build_email_html("monthly", narrative, prices, [], portfolio,
+                                     agg=agg, perf=perf, month_label=month_label)
+    send_email(subject, html)
+    print("[monthly] Terminé.")
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "daily"
-    if mode == "daily":
-        run_daily()
-    elif mode == "alert":
-        run_alert()
+    if   mode == "daily":   run_daily()
+    elif mode == "alert":   run_alert()
+    elif mode == "monthly": run_monthly()
     else:
-        print(f"Usage: python monitor.py [daily|alert]", file=sys.stderr)
+        print(f"Usage: python monitor.py [daily|alert|monthly]", file=sys.stderr)
         sys.exit(1)

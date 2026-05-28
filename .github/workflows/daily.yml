@@ -2,22 +2,21 @@ name: Portfolio Monitor
 
 on:
   schedule:
-    # ── Récap quotidien à 20h00 heure Paris ──────────────────────────────
-    # Paris = UTC+2 en été (CEST) / UTC+1 en hiver (CET)
-    # → 18h UTC en été (mai–oct), 19h UTC en hiver (nov–avr)
-    # On utilise les deux lignes — le script est idempotent (1 email/jour max)
-    - cron: "0 18 * 4,5,6,7,8,9 *"   # avril–septembre (UTC+2)
-    - cron: "0 19 * 10,11,12,1,2,3 *" # octobre–mars (UTC+1)
+    # ── Récap quotidien 20h Paris ─────────────────────────────────────────
+    - cron: "0 18 * 4,5,6,7,8,9 *"    # avril–sept (UTC+2)
+    - cron: "0 19 * 10,11,12,1,2,3 *"  # oct–mars (UTC+1)
 
-    # ── Alertes intraday : toutes les heures, jours de bourse (lun–ven) ──
-    # 7h–17h UTC couvre 9h–19h Paris (heures de marché US/EU)
+    # ── Bilan mensuel — dernier jour du mois à 20h30 Paris ───────────────
+    - cron: "30 18 28-31 4,5,6,7,8,9 *"
+    - cron: "30 19 28-31 10,11,12,1,2,3 *"
+
+    # ── Alertes intraday toutes les heures 9h–19h Paris (lun–ven) ────────
     - cron: "0 7-17 * * 1-5"
 
-  # Permet de lancer manuellement depuis GitHub Actions > Run workflow
   workflow_dispatch:
     inputs:
       mode:
-        description: "Mode: daily ou alert"
+        description: "Mode: daily | alert | monthly"
         required: true
         default: "daily"
 
@@ -39,20 +38,26 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Determine mode (daily vs alert)
+      - name: Determine mode
         id: mode
         run: |
-          # Si lancé manuellement → utilise l'input
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Sinon, détermine l'heure Paris pour distinguer daily vs alert
           HOUR_PARIS=$(TZ="Europe/Paris" date +%H)
-          echo "Heure Paris: $HOUR_PARIS"
+          MIN_PARIS=$(TZ="Europe/Paris" date +%M)
+          DAY=$(date +%d)
+          MONTH=$(date +%m)
+          LAST_DAY=$(python3 -c "import calendar,datetime; t=datetime.date.today(); print(calendar.monthrange(t.year,t.month)[1])")
 
-          if [ "$HOUR_PARIS" = "20" ]; then
+          echo "Heure Paris: $HOUR_PARIS:$MIN_PARIS | Jour: $DAY/$LAST_DAY"
+
+          # Bilan mensuel = dernier jour du mois à 20h30
+          if [ "$DAY" = "$LAST_DAY" ] && [ "$HOUR_PARIS" = "20" ] && [ "$MIN_PARIS" = "30" ]; then
+            echo "mode=monthly" >> $GITHUB_OUTPUT
+          elif [ "$HOUR_PARIS" = "20" ]; then
             echo "mode=daily" >> $GITHUB_OUTPUT
           else
             echo "mode=alert" >> $GITHUB_OUTPUT
@@ -64,5 +69,4 @@ jobs:
           GMAIL_USER:         ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_RECIPIENT:    ${{ secrets.EMAIL_RECIPIENT }}
-        run: |
-          python monitor.py ${{ steps.mode.outputs.mode }}
+        run: python monitor.py ${{ steps.mode.outputs.mode }}
