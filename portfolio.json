@@ -303,9 +303,9 @@
       "sleeve": "Other"
     },
     {
-      "ticker": "STM.PA",
+      "ticker": "STM",
       "name": "STMicroelectronics",
-      "exchange": "EPA",
+      "exchange": "NYSE",
       "qty": 80,
       "pru_eur": 52.08,
       "envelope": "PEA BoursoBank",
@@ -377,7 +377,7 @@
       "sleeve": "Semi infra/logic"
     },
     {
-      "ticker": "SMCO.PA",
+      "ticker": "SCO.PA",
       "name": "Semco Technologies",
       "exchange": "EPA",
       "qty": 30,
@@ -386,7 +386,7 @@
       "sleeve": "Semi infra/logic"
     },
     {
-      "ticker": "2CRSI.PA",
+      "ticker": "CRSI.PA",
       "name": "2CRSI",
       "exchange": "EPA",
       "qty": 30,

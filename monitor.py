@@ -60,10 +60,17 @@ def save_baseline(data: dict):
 def fetch_eurusd() -> float:
     """Taux EUR/USD en temps réel via Yahoo Finance."""
     try:
-        data = yf.download("EURUSD=X", period="1d", interval="1d",
+        data = yf.download("EURUSD=X", period="2d", interval="1d",
                            progress=False, auto_adjust=True)
         if not data.empty:
-            return float(data["Close"].iloc[-1])
+            close = data["Close"]
+            # Selon la version de yfinance, Close peut être Series ou DataFrame
+            if hasattr(close, "iloc"):
+                val = close.iloc[-1]
+                # Si c'est encore une Series (MultiIndex), prendre le premier élément
+                if hasattr(val, "iloc"):
+                    val = float(val.iloc[0])
+                return float(val)
     except Exception as e:
         print(f"[WARN] Taux EUR/USD non disponible: {e}", file=sys.stderr)
     return 1.08  # fallback raisonnable
@@ -75,42 +82,45 @@ def fetch_prices(positions: list, eurusd: float) -> dict:
     """
     Récupère cours actuel + variation J via yfinance.
     Calcule variation en € en convertissant USD→EUR au taux du jour.
+    Utilise des appels individuels pour éviter que les tickers invalides
+    ne cassent le batch entier.
     """
-    tickers = [p["ticker"] for p in positions]
     results = {}
-
-    data = yf.download(
-        tickers,
-        period="2d",
-        interval="1d",
-        group_by="ticker",
-        auto_adjust=True,
-        progress=False,
-        threads=True,
-    )
 
     for pos in positions:
         t = pos["ticker"]
         try:
-            if len(tickers) == 1:
-                closes = data["Close"]
-            else:
-                closes = data["Close"][t] if t in data["Close"].columns else None
+            data = yf.download(
+                t,
+                period="2d",
+                interval="1d",
+                auto_adjust=True,
+                progress=False,
+            )
 
-            if closes is None or len(closes) < 2:
+            if data.empty or len(data) < 2:
+                # Fallback fast_info
                 info  = yf.Ticker(t).fast_info
-                price = info.last_price
-                prev  = info.previous_close
+                price = float(info.last_price)
+                prev  = float(info.previous_close)
             else:
-                vals  = closes.dropna()
+                # Close peut être Series ou DataFrame selon la version yfinance
+                close = data["Close"]
+                if hasattr(close, "columns"):
+                    # DataFrame multi-colonnes → prendre la première
+                    close = close.iloc[:, 0]
+                vals  = close.dropna()
+                if len(vals) < 2:
+                    raise ValueError("Pas assez de données")
                 price = float(vals.iloc[-1])
                 prev  = float(vals.iloc[-2])
 
             change_pct = ((price - prev) / prev * 100) if prev else 0.0
-            currency   = yf.Ticker(t).fast_info.currency or "USD"
 
-            # Conversion en EUR pour les positions USD
-            fx = (1 / eurusd) if currency == "USD" else 1.0
+            ticker_info = yf.Ticker(t).fast_info
+            currency    = getattr(ticker_info, "currency", None) or "USD"
+
+            fx         = (1 / eurusd) if currency == "USD" else 1.0
             price_eur  = price * fx
             prev_eur   = prev  * fx
             change_eur = (price_eur - prev_eur) * pos["qty"]
@@ -131,6 +141,8 @@ def fetch_prices(positions: list, eurusd: float) -> dict:
                 "notes":       pos.get("notes", ""),
                 "threshold":   pos.get("alert_threshold_override", None),
             }
+            print(f"[OK] {t}: {price:.2f} {currency} ({change_pct:+.1f}%)")
+
         except Exception as e:
             print(f"[WARN] Prix non disponible pour {t}: {e}", file=sys.stderr)
 
@@ -391,7 +403,7 @@ def build_email_html(email_type: str, narrative: str, prices: dict,
         total_chg = agg["total_change_eur"]
         total_val = agg["total_valeur_eur"]
         chg_color = green if total_chg >= 0 else red
-        chg_pct   = total_chg / total_val * 100 if total_val else 0
+        chg_pct   = total_chg / total_val * 100 if total_val else 0.0
 
         env_rows = ""
         for env, chg in agg["by_envelope"].items():
