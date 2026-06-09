@@ -77,7 +77,7 @@
       "ticker": "CEG",
       "name": "Constellation Energy",
       "exchange": "NASDAQ",
-      "qty": 25,
+      "qty": 35,
       "pru_eur": 240.48,
       "envelope": "CTO BoursoBank",
       "sleeve": "Power"
