@@ -1,6 +1,6 @@
 {
   "config": {
-    "alert_threshold_pct": 5.0,
+    "alert_threshold_pct": 5,
     "email_recipient": "VOTRE_EMAIL@gmail.com",
     "email_sender": "VOTRE_EMAIL@gmail.com",
     "daily_summary_hour_utc": 16,
@@ -12,11 +12,11 @@
       "ticker": "MU",
       "name": "Micron Technology",
       "exchange": "NASDAQ",
-      "qty": 55,
+      "qty": 30,
       "pru_eur": 115.96,
       "envelope": "CTO BoursoBank",
       "sleeve": "Memory",
-      "alert_threshold_override": 4.0,
+      "alert_threshold_override": 4,
       "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
     },
     {
@@ -24,11 +24,11 @@
       "name": "SK Hynix",
       "exchange": "FRA",
       "qty": 10,
-      "pru_eur": 824.0,
+      "pru_eur": 824,
       "envelope": "Trade Republic",
       "sleeve": "Memory",
-      "alert_threshold_override": 4.0,
-      "notes": "Stops manuels: alerte 1010€ / trailing 970€ / hard 915€. Cours 28/05: 1315€"
+      "alert_threshold_override": 4,
+      "notes": "Stops manuels: alerte 1010â¬ / trailing 970â¬ / hard 915â¬. Cours 28/05: 1315â¬"
     },
     {
       "ticker": "MSFT",
@@ -101,7 +101,7 @@
       "pru_eur": 160.68,
       "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic",
-      "notes": "Earnings 3 juin 2026 — catalyseur optique/connectivity"
+      "notes": "Earnings 3 juin 2026 â catalyseur optique/connectivity"
     },
     {
       "ticker": "NOW",
@@ -294,7 +294,7 @@
     },
     {
       "ticker": "GLE.PA",
-      "name": "Société Générale",
+      "name": "SociÃ©tÃ© GÃ©nÃ©rale",
       "exchange": "EPA",
       "qty": 35,
       "pru_eur": 65.3,
@@ -312,7 +312,7 @@
     },
     {
       "ticker": "OR.PA",
-      "name": "L'Oréal",
+      "name": "L'OrÃ©al",
       "exchange": "EPA",
       "qty": 12,
       "pru_eur": 350.89,
@@ -354,7 +354,7 @@
       "pru_eur": 25.1,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic",
-      "notes": "Photonique laser — surveiller volume"
+      "notes": "Photonique laser â surveiller volume"
     },
     {
       "ticker": "MEMS.PA",
@@ -364,7 +364,7 @@
       "pru_eur": 6.28,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic",
-      "notes": "Pivot VOA/photonique — thèse en cours"
+      "notes": "Pivot VOA/photonique â thÃ¨se en cours"
     },
     {
       "ticker": "ALKAL.PA",
@@ -398,7 +398,7 @@
       "name": "ARM Holdings",
       "exchange": "NASDAQ",
       "qty": 8.054,
-      "pru_eur": 155.0,
+      "pru_eur": 155,
       "envelope": "Trade Republic",
       "sleeve": "Semi infra/logic"
     },
@@ -416,7 +416,7 @@
       "name": "Tesla",
       "exchange": "NASDAQ",
       "qty": 3.889,
-      "pru_eur": 388.0,
+      "pru_eur": 388,
       "envelope": "Trade Republic",
       "sleeve": "Other"
     }
@@ -425,12 +425,12 @@
     {
       "ticker": "PANW",
       "name": "Palo Alto Networks",
-      "reason": "Cyber — séquencé après AI"
+      "reason": "Cyber â sÃ©quencÃ© aprÃ¨s AI"
     },
     {
       "ticker": "LUMN",
       "name": "Lumentum",
-      "reason": "Photonique — 1-2% max"
+      "reason": "Photonique â 1-2% max"
     },
     {
       "ticker": "COHR",
@@ -442,12 +442,12 @@
     {
       "date": "2026-06-03",
       "ticker": "CRDO",
-      "event": "Earnings Credo Technology — confirmation thèse optique"
+      "event": "Earnings Credo Technology â confirmation thÃ¨se optique"
     },
     {
       "date": "2026-08-01",
       "ticker": "ALL_HYPERSCALERS",
-      "event": "Earnings hyperscalers été — suivi guidance AI capex"
+      "event": "Earnings hyperscalers Ã©tÃ© â suivi guidance AI capex"
     }
   ]
 }
