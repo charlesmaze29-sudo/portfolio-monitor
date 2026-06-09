@@ -114,7 +114,7 @@
       "ticker": "IONQ",
       "name": "IonQ",
       "exchange": "NYSE",
-      "qty": 60,
+      "qty": 20,
       "pru_eur": 49.02,
       "envelope": "CTO BoursoBank",
       "sleeve": "Other"
