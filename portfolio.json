@@ -132,7 +132,7 @@
       "ticker": "NBIS",
       "name": "Nebius Group",
       "exchange": "NASDAQ",
-      "qty": 19,
+      "qty": 10,
       "pru_eur": 190.13,
       "envelope": "CTO BoursoBank",
       "sleeve": "Neocloud"
