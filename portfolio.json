@@ -408,6 +408,14 @@
       "pru_eur": 388,
       "envelope": "Trade Republic",
       "sleeve": "Other"
+    },
+    {
+      "ticker": "AAOI",
+      "name": "Applied Optoelectronics",
+      "qty": 12,
+      "pru_eur": 156,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "Semi infra/logic"
     }
   ],
   "watchlist": [
