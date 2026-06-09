@@ -20,17 +20,6 @@
       "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
     },
     {
-      "ticker": "HY9H.F",
-      "name": "SK Hynix",
-      "exchange": "FRA",
-      "qty": 0,
-      "pru_eur": 824,
-      "envelope": "Trade Republic",
-      "sleeve": "Memory",
-      "alert_threshold_override": 4,
-      "notes": "Stops manuels: alerte 1010â¬ / trailing 970â¬ / hard 915â¬. Cours 28/05: 1315â¬"
-    },
-    {
       "ticker": "MSFT",
       "name": "Microsoft",
       "exchange": "NASDAQ",
