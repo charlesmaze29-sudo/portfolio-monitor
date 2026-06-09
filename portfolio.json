@@ -123,7 +123,7 @@
       "ticker": "NVDA",
       "name": "NVIDIA",
       "exchange": "NASDAQ",
-      "qty": 10,
+      "qty": 15,
       "pru_eur": 184.11,
       "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic"
