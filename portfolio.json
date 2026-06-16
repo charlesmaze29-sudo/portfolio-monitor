@@ -1,6 +1,6 @@
 {
   "config": {
-    "alert_threshold_pct": 5,
+    "alert_threshold_pct": 5.0,
     "email_recipient": "VOTRE_EMAIL@gmail.com",
     "email_sender": "VOTRE_EMAIL@gmail.com",
     "daily_summary_hour_utc": 16,
@@ -16,15 +16,15 @@
       "pru_eur": 115.96,
       "envelope": "CTO BoursoBank",
       "sleeve": "Memory",
-      "alert_threshold_override": 4,
-      "notes": "Stops actifs: $650 (25 titres), $550 (15 titres). Trim: $850/$950"
+      "alert_threshold_override": 4.0,
+      "notes": "Stop $650 déclenché sur 25 titres (mai 2026). Prochain stop: 15 titres à $550. PRU fiscal inchangé 115,96€."
     },
     {
       "ticker": "MSFT",
       "name": "Microsoft",
       "exchange": "NASDAQ",
       "qty": 30,
-      "pru_eur": 358.37,
+      "pru_eur": 336.75,
       "envelope": "CTO BoursoBank",
       "sleeve": "Hyperscalers"
     },
@@ -77,8 +77,8 @@
       "ticker": "CEG",
       "name": "Constellation Energy",
       "exchange": "NASDAQ",
-      "qty": 35,
-      "pru_eur": 240.48,
+      "qty": 30,
+      "pru_eur": 214.54,
       "envelope": "CTO BoursoBank",
       "sleeve": "Power"
     },
@@ -87,16 +87,16 @@
       "name": "Credo Technology",
       "exchange": "NASDAQ",
       "qty": 22,
-      "pru_eur": 160.68,
+      "pru_eur": 160.69,
       "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic",
-      "notes": "Earnings 3 juin 2026 â catalyseur optique/connectivity"
+      "notes": "Earnings 3 juin 2026 — catalyseur optique/connectivity"
     },
     {
       "ticker": "NOW",
       "name": "ServiceNow",
       "exchange": "NYSE",
-      "qty": 40,
+      "qty": 20,
       "pru_eur": 78.44,
       "envelope": "CTO BoursoBank",
       "sleeve": "App/SaaS"
@@ -106,7 +106,7 @@
       "name": "Meta Platforms",
       "exchange": "NASDAQ",
       "qty": 14,
-      "pru_eur": 522.29,
+      "pru_eur": 517.25,
       "envelope": "CTO BoursoBank",
       "sleeve": "Hyperscalers"
     },
@@ -114,8 +114,8 @@
       "ticker": "IONQ",
       "name": "IonQ",
       "exchange": "NYSE",
-      "qty": 20,
-      "pru_eur": 49.02,
+      "qty": 80,
+      "pru_eur": 48.52,
       "envelope": "CTO BoursoBank",
       "sleeve": "Other"
     },
@@ -123,8 +123,8 @@
       "ticker": "NVDA",
       "name": "NVIDIA",
       "exchange": "NASDAQ",
-      "qty": 15,
-      "pru_eur": 184.11,
+      "qty": 25,
+      "pru_eur": 183.09,
       "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic"
     },
@@ -132,8 +132,8 @@
       "ticker": "NBIS",
       "name": "Nebius Group",
       "exchange": "NASDAQ",
-      "qty": 10,
-      "pru_eur": 190.13,
+      "qty": 19,
+      "pru_eur": 190.2,
       "envelope": "CTO BoursoBank",
       "sleeve": "Neocloud"
     },
@@ -231,8 +231,8 @@
       "ticker": "AIR.PA",
       "name": "Air Liquide",
       "exchange": "EPA",
-      "qty": 55,
-      "pru_eur": 163.82,
+      "qty": 60,
+      "pru_eur": 150.16,
       "envelope": "PEA BoursoBank",
       "sleeve": "Other"
     },
@@ -283,7 +283,7 @@
     },
     {
       "ticker": "GLE.PA",
-      "name": "SociÃ©tÃ© GÃ©nÃ©rale",
+      "name": "Société Générale",
       "exchange": "EPA",
       "qty": 35,
       "pru_eur": 65.3,
@@ -301,7 +301,7 @@
     },
     {
       "ticker": "OR.PA",
-      "name": "L'OrÃ©al",
+      "name": "L'Oréal",
       "exchange": "EPA",
       "qty": 12,
       "pru_eur": 350.89,
@@ -343,7 +343,7 @@
       "pru_eur": 25.1,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic",
-      "notes": "Photonique laser â surveiller volume"
+      "notes": "Photonique laser — surveiller volume"
     },
     {
       "ticker": "MEMS.PA",
@@ -353,7 +353,7 @@
       "pru_eur": 6.28,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic",
-      "notes": "Pivot VOA/photonique â thÃ¨se en cours"
+      "notes": "Pivot VOA/photonique — thèse en cours"
     },
     {
       "ticker": "ALKAL.PA",
@@ -383,51 +383,372 @@
       "sleeve": "Neocloud"
     },
     {
-      "ticker": "ARM",
-      "name": "ARM Holdings",
-      "exchange": "NASDAQ",
-      "qty": 8.054,
-      "pru_eur": 155,
-      "envelope": "Trade Republic",
-      "sleeve": "Semi infra/logic"
+      "ticker": "LQQ.PA",
+      "name": "Amundi Nasdaq-100 Daily 2x Leveraged UCITS ETF ACC",
+      "isin": "FR0010342592",
+      "exchange": "EPA",
+      "qty": 11,
+      "pru_eur": 1153.33,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
     },
     {
-      "ticker": "ASX",
-      "name": "ASE Technology ADR",
+      "ticker": "WPEA.PA",
+      "name": "iShares MSCI World Swap PEA UCITS ETF EUR (ACC)",
+      "isin": "IE0002XZSHO1",
+      "exchange": "EPA",
+      "qty": 3100,
+      "pru_eur": 5.46,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PAEEM.PA",
+      "name": "Amundi PEA Emergent MSCI Emerging ESG Transition UCITS ETF",
+      "isin": "FR0013412020",
+      "exchange": "EPA",
+      "qty": 435,
+      "pru_eur": 27.68,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "LCSE.PA",
+      "name": "Amundi Euro Stoxx 50 Daily 2x Leveraged UCITS ETF ACC",
+      "isin": "FR0010468983",
+      "exchange": "EPA",
+      "qty": 180,
+      "pru_eur": 58.1,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PUST.PA",
+      "name": "Amundi PEA Nasdaq-100 UCITS ETF ACC",
+      "isin": "FR0011871110",
+      "exchange": "EPA",
+      "qty": 110,
+      "pru_eur": 70.02,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "LUSV.PA",
+      "name": "Amundi MSCI USA Daily 2x Leveraged UCITS ETF ACC",
+      "isin": "FR0010755611",
+      "exchange": "EPA",
+      "qty": 300,
+      "pru_eur": 22.86,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "BNK.PA",
+      "name": "Amundi Euro Stoxx Banks UCITS ETF ACC",
+      "isin": "LU1829219390",
+      "exchange": "EPA",
+      "qty": 20,
+      "pru_eur": 234.11,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PINR.PA",
+      "name": "Amundi PEA Inde MSCI India UCITS ETF ACC",
+      "isin": "FR0011869320",
+      "exchange": "EPA",
+      "qty": 310,
+      "pru_eur": 26.53,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PE500.PA",
+      "name": "Amundi PEA S&P 500 UCITS ETF ACC",
+      "isin": "FR0011871128",
+      "exchange": "EPA",
+      "qty": 120,
+      "pru_eur": 45.38,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "IEMU.AS",
+      "name": "iShares Core MSCI EMU UCITS ETF",
+      "isin": "IE00B53QG562",
+      "exchange": "EPA",
+      "qty": 28,
+      "pru_eur": 179.53,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "RS2K.PA",
+      "name": "Amundi Russell 2000 UCITS ETF EUR",
+      "isin": "LU1681038672",
+      "exchange": "EPA",
+      "qty": 16,
+      "pru_eur": 349.8,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "CSX5.IR",
+      "name": "iShares Core Euro Stoxx 50 UCITS ETF EUR (DIST)",
+      "isin": "IE0008471009",
+      "exchange": "EPA",
+      "qty": 60,
+      "pru_eur": 50.54,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PTPXE.PA",
+      "name": "Amundi PEA Japon TOPIX UCITS ETF EUR Hedged ACC",
+      "isin": "FR0013411998",
+      "exchange": "EPA",
+      "qty": 50,
+      "pru_eur": 45.0,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "PAASI.PA",
+      "name": "Amundi PEA Asie Pacifique MSCI AC Asia Pacific Ex Japan UCITS ETF ACC",
+      "isin": "FR0011869312",
+      "exchange": "EPA",
+      "qty": 100,
+      "pru_eur": 21.1,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "INSU.PA",
+      "name": "Amundi Stoxx Europe 600 Insurance UCITS ETF ACC",
+      "isin": "LU1834987973",
+      "exchange": "EPA",
+      "qty": 30,
+      "pru_eur": 62.32,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "BASB.PA",
+      "name": "Amundi Stoxx Europe 600 Basic Resources UCITS ETF ACC",
+      "isin": "LU1834983550",
+      "exchange": "EPA",
+      "qty": 15,
+      "pru_eur": 87.81,
+      "envelope": "PEA BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "MA",
+      "name": "Mastercard",
+      "isin": "US57636Q1040",
       "exchange": "NYSE",
-      "qty": 123.277,
-      "pru_eur": 10.08,
-      "envelope": "Trade Republic",
+      "qty": 10,
+      "pru_eur": 421.63,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "GEV",
+      "name": "GE Vernova",
+      "isin": "US36828A1016",
+      "exchange": "NYSE",
+      "qty": 3,
+      "pru_eur": 827.35,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "MRVL",
+      "name": "Marvell Technology",
+      "isin": "US5738741041",
+      "exchange": "NASDAQ",
+      "qty": 10,
+      "pru_eur": 233.67,
+      "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic"
     },
     {
-      "ticker": "TSLA",
-      "name": "Tesla",
+      "ticker": "FLNC",
+      "name": "Fluence Energy",
+      "isin": "US34379V1035",
       "exchange": "NASDAQ",
-      "qty": 3.889,
-      "pru_eur": 388,
-      "envelope": "Trade Republic",
-      "sleeve": "Other"
+      "qty": 100,
+      "pru_eur": 21.08,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
     },
     {
       "ticker": "AAOI",
       "name": "Applied Optoelectronics",
+      "isin": "US03823U1025",
+      "exchange": "NASDAQ",
       "qty": 12,
-      "pru_eur": 156,
-      "envelope": "PEA BoursoBank",
+      "pru_eur": 156.7,
+      "envelope": "CTO BoursoBank",
       "sleeve": "Semi infra/logic"
+    },
+    {
+      "ticker": "NNE",
+      "name": "Nano Nuclear Energy",
+      "isin": "US63010H1086",
+      "exchange": "NASDAQ",
+      "qty": 75,
+      "pru_eur": 19.37,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "EOSE",
+      "name": "EOS Energy",
+      "isin": "US29415C1018",
+      "exchange": "NASDAQ",
+      "qty": 250,
+      "pru_eur": 5.22,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Power"
+    },
+    {
+      "ticker": "MSCI-HC-ETF",
+      "name": "Amundi MSCI World Health Care UCITS ETF EUR ACC",
+      "isin": "LU0533033238",
+      "exchange": "EPA",
+      "qty": 8,
+      "pru_eur": 465.26,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "ETF"
+    },
+    {
+      "ticker": "IBIT-ETP",
+      "name": "iShares Bitcoin ETP",
+      "isin": "XS2940466316",
+      "exchange": "LSE",
+      "qty": 500,
+      "pru_eur": 5.28,
+      "envelope": "CTO BoursoBank",
+      "sleeve": "Other"
+    },
+    {
+      "ticker": "WISD-AIDR",
+      "name": "WisdomTree Physical AI Humanoids & Drones UCITS ETF",
+      "exchange": "LSE",
+      "qty": 200,
+      "pru_eur": null,
+      "envelope": "Saxo",
+      "sleeve": "ETF",
+      "notes": "Cours au 16/06/2026: 22,28€. PRU non communiqué."
+    },
+    {
+      "ticker": "DA20",
+      "name": "ETC Issuance O.END ETN - DA20",
+      "exchange": "XETRA",
+      "qty": 23,
+      "pru_eur": 120.0,
+      "envelope": "Bourse Direct",
+      "sleeve": "Other",
+      "notes": "ETN Xetra. Cours 16/06: 67,00€. PV latente: -44,17%"
+    },
+    {
+      "ticker": "ZETI",
+      "name": "ETC Issuance O.END ETN - ZETI",
+      "exchange": "XETRA",
+      "qty": 55,
+      "pru_eur": 31.19,
+      "envelope": "Bourse Direct",
+      "sleeve": "Other",
+      "notes": "ETN Xetra (USD). Cours 16/06: 16,33 USD. PV latente: -54,84%"
+    },
+    {
+      "ticker": "BTCF",
+      "name": "ETC Issuance O.END ETN - BTCF (Bitcoin)",
+      "exchange": "XETRA",
+      "qty": 27,
+      "pru_eur": 73.81,
+      "envelope": "Bourse Direct",
+      "sleeve": "Other",
+      "notes": "ETN Bitcoin Xetra (USD). Cours 16/06: 58,775 USD. PV latente: -31,31%"
+    },
+    {
+      "ticker": "MAERSK-B",
+      "name": "A.P. Møller-Maersk A/S",
+      "isin": "DK0010244425",
+      "exchange": "CPH",
+      "qty": 0.365764,
+      "pru_eur": 2138.0,
+      "envelope": "Trade Republic",
+      "sleeve": "Other",
+      "notes": "Relevé Saxo 16/06/2026. Valeur: 782€"
+    },
+    {
+      "ticker": "ARM",
+      "name": "ARM Holdings PLC",
+      "isin": "US0420682058",
+      "exchange": "NASDAQ",
+      "qty": 8.054078,
+      "pru_eur": 351.0,
+      "envelope": "Trade Republic",
+      "sleeve": "Semi infra/logic",
+      "notes": "Relevé TR 16/06/2026. Valeur: 2826,98€. PRU 351€ (vs ancien PRU TR 155€ — à réconcilier)"
+    },
+    {
+      "ticker": "MSCI-EE",
+      "name": "MSCI Eastern Europe Ex Russia EUR Acc",
+      "isin": "LU1900066462",
+      "exchange": "EPA",
+      "qty": 38.037276,
+      "pru_eur": 44.24,
+      "envelope": "Trade Republic",
+      "sleeve": "ETF",
+      "notes": "Relevé Saxo 16/06/2026. Valeur: 1682,77€"
+    },
+    {
+      "ticker": "RKT",
+      "name": "Rocket Companies CL.A",
+      "isin": "US77311W1018",
+      "exchange": "NYSE",
+      "qty": 83.417587,
+      "pru_eur": 13.92,
+      "envelope": "Trade Republic",
+      "sleeve": "Other",
+      "notes": "Relevé Saxo 16/06/2026. Valeur: 1161,17€"
+    },
+    {
+      "ticker": "ASX",
+      "name": "ASE Technology Holding",
+      "isin": "US0215W1009",
+      "exchange": "NYSE",
+      "qty": 123.277461,
+      "pru_eur": 32.6,
+      "envelope": "Trade Republic",
+      "sleeve": "Semi infra/logic",
+      "notes": "Relevé TR 16/06/2026. Valeur: 4018,85€. PRU 32,60€ (vs ancien PRU TR 10,08€ — à réconcilier)"
+    },
+    {
+      "ticker": "DBS",
+      "name": "DBS Group Holdings Ltd",
+      "isin": "SG1L01001701",
+      "exchange": "SGX",
+      "qty": 44.93766,
+      "pru_eur": 42.87,
+      "envelope": "Trade Republic",
+      "sleeve": "Other",
+      "notes": "Relevé Saxo 16/06/2026. Valeur: 1926,48€"
     }
   ],
   "watchlist": [
     {
       "ticker": "PANW",
       "name": "Palo Alto Networks",
-      "reason": "Cyber â sÃ©quencÃ© aprÃ¨s AI"
+      "reason": "Cyber — séquencé après AI"
     },
     {
       "ticker": "LUMN",
       "name": "Lumentum",
-      "reason": "Photonique â 1-2% max"
+      "reason": "Photonique — 1-2% max"
     },
     {
       "ticker": "COHR",
@@ -439,12 +760,12 @@
     {
       "date": "2026-06-03",
       "ticker": "CRDO",
-      "event": "Earnings Credo Technology â confirmation thÃ¨se optique"
+      "event": "Earnings Credo Technology — confirmation thèse optique"
     },
     {
       "date": "2026-08-01",
       "ticker": "ALL_HYPERSCALERS",
-      "event": "Earnings hyperscalers Ã©tÃ© â suivi guidance AI capex"
+      "event": "Earnings hyperscalers été — suivi guidance AI capex"
     }
   ]
 }
