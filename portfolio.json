@@ -359,8 +359,8 @@
       "ticker": "ALKAL.PA",
       "name": "Kalray",
       "exchange": "EPA",
-      "qty": 200,
-      "pru_eur": 10.64,
+      "qty": 400,
+      "pru_eur": 11.21,
       "envelope": "PEA-PME",
       "sleeve": "Semi infra/logic"
     },
@@ -377,8 +377,8 @@
       "ticker": "CRSI.PA",
       "name": "2CRSI",
       "exchange": "EPA",
-      "qty": 30,
-      "pru_eur": 38.45,
+      "qty": 60,
+      "pru_eur": 52.26,
       "envelope": "PEA-PME",
       "sleeve": "Neocloud"
     },
@@ -737,6 +737,16 @@
       "envelope": "Trade Republic",
       "sleeve": "Other",
       "notes": "Relevé Saxo 16/06/2026. Valeur: 1926,48€"
+    },
+    {
+      "ticker": "ALRIB.PA",
+      "name": "Riber",
+      "exchange": "EPA",
+      "qty": 200,
+      "pru_eur": 15.35,
+      "envelope": "PEA-PME",
+      "sleeve": "Semi infra/logic",
+      "notes": "Equipementier MBE (épitaxie) — relevé CA 16/06/2026"
     }
   ],
   "watchlist": [
